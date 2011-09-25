@@ -27,12 +27,16 @@ void loop()
 				error('d');
 		}           
 }
-void handleData()
+void processData(char[36] data)
 {
-	
+	demoFunktion(data);
 }
 void error(char message)
 {
 	Serial.println("Felkod: ");
 	Serial.print(message);
+}
+void demoFunktion(char[36] data)
+{
+	//Skicka tillbaka erhållen data (fast som text) för att illustrera att protokollet funkar som det ska?
 }
