@@ -1,1 +1,8 @@
-Git-repo för Robotnavigeringsprojekt TNE040/TNK107 HT2011
+/ Git-repo för Robotnavigeringsprojekt \
+\ TNE040/TNK107 HT2011                 /
+ --------------------------------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
