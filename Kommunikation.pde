@@ -7,7 +7,7 @@ unsigned int lastReceived = 0;
 unsigned int lastSent = 0;
 
 char inByte[17] = {"N0#D0;0#E0;0#S0#"}; 
-char utByte[36] = {"N0#P0;0;0#C0#U0;0;0;0;0;0#A0#D0#L0#"};
+char utByte[36] = {"N0#Pa;b;c#Cd#Ue;f;g;h;i;j#Ak#Dl#L0#"};
 char fel[9] = {"E0#T0;0#"};
 
 void setup()
@@ -20,23 +20,27 @@ void loop()
 	while(1 <= Serial.available()) // loopar igenom hela input, även enterslaget	
 		{
 			if(i==0);
+			{
+				inByte[1]=lastRecieved;
+			}
 		    inByte[i] = Serial.read(); // receive byte as a character
 		    Serial.println(inByte);    // print the character
 			i++;
 			if(inByte[0]!='N' && inByte[3]!='D' && inByte[8]!='E' && inByte[13]!='S')
-				error('d');
-		}           
-}
-void processData(char[36] data)
-{
-	demoFunktion(data);
+				error('inByte');
+		}
+		demoFunktion();           
 }
 void error(char message)
 {
 	Serial.println("Felkod: ");
 	Serial.print(message);
 }
-void demoFunktion(char[36] data)
+void demoFunktion()
 {
-	//Skicka tillbaka erhållen data (fast som text) för att illustrera att protokollet funkar som det ska?
+	//Skicka tillbaka erhållen data samt ett dummy-paket för att illustrera att det funkar?
+	utByte[2] = lastSent;
+	//Upptadera med sensordata
+	Serial.println(utByte);
+	lastSent++;
 }
