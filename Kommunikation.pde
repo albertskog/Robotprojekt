@@ -1,14 +1,14 @@
 /* Program för att visa kommunikationen */
 
-#include <Wire.h>
-#include <Servo.h>
+#include <Wire.h> //Används ej atm
+#include <Servo.h> //Används ej atm
 #include <AverageList.h> //Måste inkluderas i Arduino-miljön för att filen ska kunna kompileras!
 typedef int sample;
 const byte MAX_NUMBER_OF_READINGS = 10;
 sample storage[MAX_NUMBER_OF_READINGS] = {0};
-AverageList<sample> distance[3] = AverageList<sample>( storage, MAX_NUMBER_OF_READINGS );
+AverageList<sample> distance[3] = AverageList<sample>(storage, MAX_NUMBER_OF_READINGS);
 
-unsigned int lastReceived = 0;
+unsigned char lastReceived = '0';
 unsigned int lastSent = 0;
 
 const unsigned int trigPin[1] = {3};
@@ -20,7 +20,10 @@ char fel[9] = {"E0#T0;0#"};
 
 void setup()
 {
-	Serial.begin(9600);	
+	Serial.begin(9600);
+
+        pinMode(trigPin[1], OUTPUT);
+        pinMode(echoPin[1], INPUT);	
 }
 void loop()
 {
@@ -31,7 +34,9 @@ void loop()
 		    Serial.println(inByte);    // print the character
 			i++;
 			if(inByte[0]!='N' && inByte[3]!='D' && inByte[8]!='E' && inByte[13]!='S')
-				error('inByte');
+			{	
+            	error('inByte');
+            }
 		}
 		demoFunktion();
 		//parseInput(inByte)
@@ -54,8 +59,8 @@ void demoFunktion()
 {
 	//Skicka tillbaka erhållen data samt ett dummy-paket för att illustrera att det funkar.
 	getDistance(1); //Erhåller avståndsvärde på ultraljudssensor 1
-	utByte[14] = distance[1].getAverage();
-	utByte[2] = lastSent;
+    //utByte[14] = distance[1].getAverage(); //Gör att allt buggar ur, även bara nollor som värde.
+	utByte[1] = lastSent;
 	utByte[33] = lastReceived;
 	Serial.println(utByte);
 	lastSent++;
