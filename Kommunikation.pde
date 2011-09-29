@@ -2,7 +2,7 @@
 
 #include <Wire.h>
 #include <Servo.h>
-#include <AverageList.h>
+#include <AverageList.h> //Måste inkluderas i Arduino-miljön för att filen ska kunna kompileras!
 typedef int sample;
 const byte MAX_NUMBER_OF_READINGS = 10;
 sample storage[MAX_NUMBER_OF_READINGS] = {0};
@@ -13,7 +13,6 @@ unsigned int lastSent = 0;
 
 const unsigned int trigPin[1] = {3};
 const unsigned int echoPin[1] = {4};
-const unsigned int distance[1] = {0};
 
 char inByte[17] = {"N0#D0;0#E0;0#S0#"}; 
 char utByte[36] = {"N0#Pa;b;c#Cd#Ue;f;g;h;i;j#Ak#Dl#L0#"};
@@ -35,7 +34,7 @@ void loop()
 				error('inByte');
 		}
 		demoFunktion();
-		//parseInput(inByte)          
+		//parseInput(inByte)
 }
 void error(char message)
 {
@@ -55,9 +54,9 @@ void demoFunktion()
 {
 	//Skicka tillbaka erhållen data samt ett dummy-paket för att illustrera att det funkar.
 	getDistance(1); //Erhåller avståndsvärde på ultraljudssensor 1
-	utbyte[14] = distance[1].getAverage();
+	utByte[14] = distance[1].getAverage();
 	utByte[2] = lastSent;
-	utByte[33] = lastRecieved;
+	utByte[33] = lastReceived;
 	Serial.println(utByte);
 	lastSent++;
 }
