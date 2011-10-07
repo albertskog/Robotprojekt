@@ -1,14 +1,8 @@
 /* Program för att visa kommunikationen */
 
 #include <Wire.h> //Används ej atm
-#include <Servo.h> //Används ej atm
-#include <AverageList.h> //Måste inkluderas i Arduino-miljön för att filen ska kunna kompileras!
-typedef int sample;
-const byte MAX_NUMBER_OF_READINGS = 10;
-sample storage[MAX_NUMBER_OF_READINGS] = {0};
-AverageList<sample> distance[3] = AverageList<sample>(storage, MAX_NUMBER_OF_READINGS);
 
-unsigned char lastReceived = '0';
+unsigned int lastReceived = 0;
 unsigned int lastSent = 0;
 
 const unsigned int trigPin[1] = {3};
@@ -20,10 +14,7 @@ char fel[9] = {"E0#T0;0#"};
 
 void setup()
 {
-	Serial.begin(9600);
-
-        pinMode(trigPin[1], OUTPUT);
-        pinMode(echoPin[1], INPUT);	
+	Serial.begin(9600);	
 }
 void loop()
 {
@@ -39,7 +30,7 @@ void loop()
             }
 		}
 		demoFunktion();
-		//parseInput(inByte)
+		//parseInput(inByte);
 }
 void error(char message)
 {
@@ -48,12 +39,7 @@ void error(char message)
 }
 void getDistance(int sensor)
 {
-  digitalWrite(trigPin[sensor], LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin[sensor], HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin[sensor], LOW);  
-  distance[sensor].addValue(pulseIn(echoPin[sensor], HIGH)/58);
+	
 }
 void demoFunktion()
 {
@@ -65,7 +51,7 @@ void demoFunktion()
 	Serial.println(utByte);
 	lastSent++;
 }
-void parseInput(char data[17])
+void parseInput(byte data[17])
 {
 	//Bryta ner datan
 }
