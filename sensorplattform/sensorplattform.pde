@@ -9,7 +9,7 @@ int i=0;
 
 void setup()
 {
-  Serial.begin(115200); //Ändra till BT!!
+  Serial.begin(57600); //Depends on the BT-module
 }
 
 void parseInPackage()
@@ -22,7 +22,7 @@ void parseInPackage()
     {
       while(inPackage[i] != '#')
       {
-        inNr = 
+//        inNr = 
       }
     }
     
@@ -37,11 +37,12 @@ void buildDataPackage()
   dataPackage += '$';
   //Put a number on it
   dataPackage += 'N';
-  dataPackage += String(packageNumber++, DEC);
+  dataPackage += packageNumber++;
   dataPackage += '#';
   //Add GPS data
   dataPackage += 'G';
-  dataPackage += "0.000;0.000;0.000";
+  dataPackage += 
+  dataPackage += ';';
   dataPackage += '#';
   dataPackage += inPackage;
   //End of package! Print a Newline!
