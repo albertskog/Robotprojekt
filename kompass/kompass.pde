@@ -5,8 +5,10 @@
 
 #include <Wire.h>
 
-byte data[6];
+byte data[7];
 int  i;
+int x, y, z;
+int heading;
 
 void setup()
 {
@@ -22,14 +24,30 @@ void setup()
 }
 
 void loop()
-{
-  Wire.requestFrom(0x1E, 6);    // request 6 bytes
-  
+{ 
+  Wire.requestFrom(0x1E, 7);    // request 7 bytes
   i = 0;
   while(Wire.available())    // slave may send less than requested
   { 
-    data[i++] = Wire.receive(); // receive a byte as character
+    data[i++] = Wire.receive();
   }
-  Serial.println(data[0]);
+  
+  //Parse data from DXRA, DXRB, DYRA, DYRB, DZRA, DZRB intp x, y, z
+  x = -((((int)data[0]) << 8) | data[1]);
+  y = -((((int)data[2]) << 8) | data[3]);
+  z = -((((int)data[4]) << 8) | data[5]);  
+
+  heading = (atan2(x,y)+M_PI)*180/M_PI;
+  Serial.println(heading, DEC);
+  /*
+  //Print raw xyz-data
+  Serial.print(x, DEC);
+  Serial.print(' ');
+  Serial.print(y, DEC);
+  Serial.print(' ');
+  Serial.print(z, DEC);
+  Serial.println();
+  */
+  delay(100);
 }
 
