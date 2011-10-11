@@ -16,8 +16,6 @@ void setup()
 	
 	speed.attach(3);
 	angle.attach(4);
-	
-	Serial.begin(9600);					// start serial for output
 }
 
 void loop()
