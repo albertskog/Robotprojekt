@@ -16,8 +16,6 @@ void setup()
 	
 	speed.attach(3);
 	angle.attach(4);
-	
-	Serial.begin(9600);					// start serial for output
 }
 
 void loop()
@@ -25,12 +23,13 @@ void loop()
 	
 }
 
-void receiveEvent(int howMany/*Anger hur många byte som ska tas emot*/)
+void receiveEvent()
 {
 	unsigned int i = 0;
 	while(1 < Wire.available())			// loop through all but the last
 	{
 		data[i] = Wire.receive();		// receive byte as a character
+		i++
 	}
 	run();
 }
