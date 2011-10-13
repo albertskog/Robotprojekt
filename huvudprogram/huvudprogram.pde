@@ -32,8 +32,8 @@ void loop()
   parseInPackage();
   
   Wire.beginTransmission(4);
-  Wire.send(s);
   Wire.send(v);
+  Wire.send(s);
   Wire.endTransmission();
 }
 
