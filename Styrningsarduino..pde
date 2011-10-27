@@ -45,9 +45,9 @@ void run()
 		data[0] = 40;
 	
 	Speed.write(data[1]);
-	if (data[0] > 120)
-		data[0] = 120;
-	if (data[0] < 80)
-		data[0] = 80;
+	if (data[0] > 110)
+		data[0] = 110;
+	if (data[0] < 60)
+		data[0] = 60;
 	Angle.write(data[0]);
 }
