@@ -37,7 +37,7 @@ void loop()
   y = -((((int)data[2]) << 8) | data[3]);
   z = -((((int)data[4]) << 8) | data[5]);  
 
-  heading = (atan2(x,y)+M_PI)*180/M_PI;
+  heading = (atan2(x,y))*180/M_PI; // argument of (x-axis)/(y-axis) and to degrees. 
   Serial.println(heading, DEC);
   /*
   //Print raw xyz-data
