@@ -1,41 +1,53 @@
 /*Styrningsarduino*/
 
-#include <Wire.h>
 #include <Servo.h>
+#include <Wire.h>
 
-int I2CAdress = 4;
-unsigned int data[2] = {0,0}; /* data[0]=hastighet, data[1]=vinkel */
-
-Servo speed;
-Servo angle;
+byte data[2] = {90,88}; /* data[0]=vinkel, data[1]=hastighet */
+Servo Speed;
+Servo Angle;
+int servoPin = 2;
+int motorPin = 3;
 
 void setup()
 {
-	Wire.begin(I2CAdress);				// join i2c bus with address #4
-	Wire.onReceive(receiveEvent);		// register event
+  
+	Wire.begin(4);                // join i2c bus with address #4
+	Wire.onReceive(receiveEvent); // register event
 	
-	speed.attach(3);
-	angle.attach(4);
+	Speed.attach(motorPin);
+	Angle.attach(servoPin);
+
+	run();						// Write initial values 
 }
 
 void loop()
 {
-	
+	delay(1);
+	run();
 }
 
-void receiveEvent()
+void receiveEvent(int howMany)
 {
 	unsigned int i = 0;
-	while(1 < Wire.available())			// loop through all but the last
+	while(Wire.available()) // loop through all but the last
 	{
-		data[i] = Wire.receive();		// receive byte as a character
-		i++
+		data[i] = Wire.receive(); // receive byte as a character
+		i++;
 	}
-	run();
 }
 
 void run()
 {
-	speed.write(data[0]);
-	angle.write(data[1]);
+	if (data[0] > 120)
+		data[0] = 120;
+	if (data[0] < 40)
+		data[0] = 40;
+	
+	Speed.write(data[1]);
+	if (data[0] > 120)
+		data[0] = 120;
+	if (data[0] < 80)
+		data[0] = 80;
+	Angle.write(data[0]);
 }
