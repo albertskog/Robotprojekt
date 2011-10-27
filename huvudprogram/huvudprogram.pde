@@ -3,7 +3,7 @@
 // Written by: Albert Skog 11-10-11
 
 #include <Wire.h>
-byte inPackage,s, v;
+byte inPackage, s, v;
 
 void setup()
 {
@@ -13,12 +13,14 @@ void setup()
 
 void parseInPackage()
 {
-    if (inPackage == 66) { v += 10; }//upp
-    if (inPackage == 65) { v -= 10; }//ner
-    if (inPackage == 68) { s += 10; }//h
-    if (inPackage == 67) { s -= 10; }//v
-    if (inPackage == 99) { s = 0; v = 0; }
-
+    if (inPackage == 66) { vel = 100; }//upp
+    else if (inPackage == 65) { vel = 80; }//ner
+    else if (inPackage == 68) { ang = 60; }//h
+    else if (inPackage == 67) { ang = 120; }//v
+    else if (inPackage == 99) { ang = 90; vel = 90; }
+    else if (inPackage == 0) { vel = 0; }
+    else{ vel = 0; }
+    inPackage = 0;
 }
 
 void loop()
@@ -32,8 +34,8 @@ void loop()
   parseInPackage();
   
   Wire.beginTransmission(4);
-  Wire.send(v);
-  Wire.send(s);
+  Wire.send(vel);
+  Wire.send(ang);
   Wire.endTransmission();
 }
 
