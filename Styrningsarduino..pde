@@ -23,10 +23,34 @@ void setup()
 
 void loop()
 {
-	delay(1);
 	run();
+	/*
+	setSpeed();
+	setDirection();
+	getRPM();
+	getDataCompass();
+	*/
 }
-
+void getRPM()
+{
+	/* Räknar ut aktuell hastighet utifrån hall-sensordata */
+}
+void getDataCompass()
+{
+	/* Hämta kompassdata */
+}
+void setSpeed()
+{
+	/*  Välj hastighet utifrån rpm*/
+}
+void setDirection()
+{
+	/* Sätt servovinkel efter önskad riktning */
+}
+void requestEvent()
+{
+	/* Skicka faktiskt hastighet */
+}
 void receiveEvent(int howMany)
 {
 	unsigned int i = 0;
