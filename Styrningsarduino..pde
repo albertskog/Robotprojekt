@@ -16,16 +16,17 @@
 #define noSpeed 88 //värde då fartreglaget är i neutral
 
 #define angleP 1 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
+#define speedP 1 //värde för P-reglering. dvs hur mycket differansen mellan verklig hastighet och tänkt spelar inpå inskickat värde till motorstyrningen
 
 Servo Speed;
 Servo Angle;
 
 int compassData;
 int direction; //inskickad riktning från huvudarduino
-int speed; //inskickad hastighet från huvudarduino
+int desiredSpeed; //inskickad hastighet från huvudarduino 0 = max bakåt 127 = stillastående 255 = max frammåt
 int actualSpeed;
 
-int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
+long revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
 int revs = 0; //antal varv sedan senast beräknat RPM-värde.
 int timeStamp= 0; //tid vid senast beräknat RPM-värde.
 
@@ -35,10 +36,10 @@ void hallInterrupt()
 }
 void setup()
 {
-	
 	//Inställningar för I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
 	Wire.onReceive(receiveEvent); // register event
+	Wire.onRequest(requestEvent); // register event
 	
 	//Servoinställningar
 	Speed.attach(motorPin);
@@ -65,7 +66,7 @@ void getSpeed()
 	revsTotal = revsTotal + revs;
 	int deltaT = millis() - timeStamp;
 	
-	/* varv per millisekund på kardanaxeln, omräknat till hastighet motsvarande servo-grad till fartreglage*/
+	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
  	actualSpeed = /* konstant * (revs/deltaT) */(revs/deltaT);
 	
 	revs = 0;
@@ -92,37 +93,30 @@ void getDataCompass()
 }
 void setSpeed()
 {
-	
-	/*  Välj hastighet utifrån nuvarande hastighet, med PID-reglering*/
+	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
+	newSpeed = noSpeed+speedP*(desiredSpeed - actualSpeed);
+	if(newSpeed < maximumForward)
+		newSpeed = maximumForward;
+	if(newSpeed > maximumBackwards)
+		newSpeed = maximumBackwards;
+
+	Speed.write(newSpeed);
 }
 void setDirection()
 {
-	/* Sätt servovinkel efter önskad riktning */
+	int newAngle = servoCenter+angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
 	
-	if(direction < compassData)
-	{
-		int newAngle = servoCenter+angleP*(direction-compassData); //Beräknar ny servovinkel med enkel p-reglering
-		/*Kan hända att det ska vara 90-compassP*... */
+	if(newAngle < servoMin)
+		newAngle = servoMin;
+	if(newAngle > servoMax)
+		newAngle = servoMax;
 		
-		//Kollar så vi inte kör med en för stor servovinkel
-		if(newAngle < servoMin)
-			newAngle = servoMin;
-		Angle.write(newAngle);
-	}
-	if(direction > compassData)
-	{
-		int newAngle = servoCenter+angleP*(direction-compassData);
-		
-		if(newAngle > servoMax)
-			newAngle = servoMax;
-		Angle.write(newAngle);
-	}
-	else
-		Angle.write(servoCenter);
+	Angle.write(newAngle);
 }
 void requestEvent()
 {
-	/* Skicka faktiskt hastighet, i vilken storhet? */
+	Wire.send(actualSpeed);
+	//Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
 }
 void receiveEvent(int howMany/* howMany kommer inte användas */)
 {
@@ -134,5 +128,5 @@ void receiveEvent(int howMany/* howMany kommer inte användas */)
 		i++;
 	}
 	direction = data[0];
-	speed = data[1];
+	desiredSpeed = data[1]; /*OBS! måste räknas om till RPM, eller vad vi nu ska använda!*/ 
 }
