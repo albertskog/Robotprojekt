@@ -17,7 +17,7 @@ int heading;
 int compass;
 
 //Variables
-String inPackage;
+char inPackage[10];
 String dataPackage;
 byte packageNumber;
 int i;
@@ -26,6 +26,8 @@ int i;
 int eco = 3;
 int trig = 7;
 int USsensor;
+
+boolean cheak = true;
 
 void setup()
 {
@@ -42,7 +44,38 @@ void setup()
   pinMode(eco, INPUT);
   pinMode(trig, OUTPUT); 
 }
-/*
+
+void getPackage()
+{
+  i = 0;
+  int w = 0;
+  boolean cheak = true;
+  //Check for new instructions    
+    while(Serial.available())
+    {
+      if(i < 11)
+      {
+        inPackage[i++] = char(Serial.read());
+      }
+      else
+      { 
+        cheak = false;
+        break;
+      }
+    }
+      if(cheak == false)
+      {
+      Serial.println("Fel fel fel, Send ett nytt!");
+      }
+      else
+      {
+        while(w != i)
+        {
+          Serial.print(inPackage[w++]);
+        }
+      }      
+}
+
 void parseInPackage()
 {
   //Did we get the beginning of a package?
@@ -60,7 +93,7 @@ void parseInPackage()
     
   }//inPackage[1] == "$"
 }
-*/
+
 int getCompassData()
 {
   Wire.requestFrom(0x1E, 7);    // request 7 bytes
@@ -148,7 +181,7 @@ void buildDataPackage()
   
   //Package nr
   dataPackage += 'L';
-  dataPackage += inPackage;
+//  dataPackage += inPackage;
   dataPackage += '#';
  
   dataPackage += char(10);
@@ -156,15 +189,15 @@ void buildDataPackage()
 
 void loop()
 {
-  //Check for new instructions
-  while(Serial.available())
+  if (Serial.available())
   {
-    inPackage = Serial.read();
+    getPackage();
   }
-//  parseInPackage();
+  parseInPackage();
   USsensor = getUSData();
   compass = getCompassData();
   
+
   //Build sensor data package
   buildDataPackage();
   
