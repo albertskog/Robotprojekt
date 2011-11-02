@@ -26,7 +26,7 @@ int direction; //inskickad riktning från huvudarduino
 int desiredSpeed; //inskickad hastighet från huvudarduino 0 = max bakåt 127 = stillastående 255 = max frammåt
 int actualSpeed;
 
-long revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
+int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
 int revs = 0; //antal varv sedan senast beräknat RPM-värde.
 int timeStamp= 0; //tid vid senast beräknat RPM-värde.
 
@@ -64,13 +64,11 @@ void getSpeed()
 {
 	revsTotal = revsTotal + revs;
 	int deltaT = millis() - timeStamp;
-	
 	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
  	actualSpeed = /* konstant * (revs/deltaT) */(revs/deltaT);
-	
+
 	revs = 0;
 	timeStamp = millis();
-	/* Räknar ut aktuell hastighet utifrån hall-sensordata */
 }
 void getDataCompass()
 {
@@ -93,7 +91,8 @@ void getDataCompass()
 void setSpeed()
 {
 	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
-	newSpeed = noSpeed+speedP*(desiredSpeed - actualSpeed);
+	int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
+	
 	if(newSpeed < maximumForward)
 		newSpeed = maximumForward;
 	if(newSpeed > maximumBackwards)
@@ -103,7 +102,7 @@ void setSpeed()
 }
 void setDirection()
 {
-	int newAngle = servoCenter+angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
+	int newAngle = direction+angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
 	
 	if(newAngle < servoMin)
 		newAngle = servoMin;
@@ -128,4 +127,5 @@ void receiveEvent(int howMany/* howMany kommer inte användas */)
 	}
 	direction = data[0];
 	desiredSpeed = data[1]; /*OBS! måste räknas om till RPM, eller vad vi nu ska använda!*/ 
+	/* 0 till 100, 50 är stillastående, använd map-kommandot*/
 }
