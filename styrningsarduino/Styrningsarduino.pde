@@ -93,7 +93,7 @@ void setSpeed()
 {
 	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
 	//int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
-	int newSpeed = data[1]; //OBS endast test!!!
+	int newSpeed = desiredSpeed; //OBS endast test!!!
 	if(newSpeed < maximumForward)
 		newSpeed = maximumForward;
 	if(newSpeed > maximumBackwards)
@@ -117,7 +117,7 @@ void requestEvent()
 	Wire.send(actualSpeed);
 	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
 }
-void receiveEvent()
+void receiveEvent(int HowMany)
 {
 	byte data[2];
 	unsigned int i = 0;
