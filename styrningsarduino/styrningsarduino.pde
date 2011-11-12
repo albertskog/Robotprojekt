@@ -9,7 +9,7 @@
 unsigned int data[2] = {
   0,0}; /* data[0]=hastighet, data[1]=vinkel */
 
-Servo speed;
+Servo Speed;
 Servo angle;
 
 void setup()
@@ -17,7 +17,7 @@ void setup()
   Wire.begin(I2C_ADDRESS);		// join i2c bus with address #4
   Wire.onReceive(receiveEvent);		// register event
 
-  speed.attach(3);
+  Speed.attach(3);
   angle.attach(4);
 }
 
@@ -26,10 +26,10 @@ void loop()
 
 }
 
-void receiveEvent()
+void receiveEvent(int HowMany)
 {
   byte i = 0;
-  while(1 < Wire.available())		// loop through all but the last
+  while(Wire.available())		// loop through all but the last
   {
     data[i++] = Wire.receive();		// receive byte as a character
   }
@@ -38,7 +38,7 @@ void receiveEvent()
 
 void run()
 {
-  speed.write(data[0]);
+  Speed.write(data[0]);
   angle.write(data[1]);
 }
 
