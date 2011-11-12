@@ -40,14 +40,14 @@ Sensor program
 
 //Pins
 byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  3, 5, 6, 7, 8, 9};
+  3, 3, 3, 3, 3, 3};
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  2, 10, 11, 12, 13, 9};
+  2, 2, 2, 2, 2, 2};
 
 NewSoftSerial nss(2, 3);
 TinyGPS Gps;
 RunningMedian ProximityData[NUMBER_OF_PROXIMITY_SENSORS];
-byte gpsData[3];
+byte sensorData[9];
 
 long lat, lon, lat_0, lon_0, c_x, c_y;
 unsigned long age;
@@ -55,11 +55,11 @@ int i = 0;
 
 long xByte, yByte, ageByte;
 
+byte p[6] = {1, 2, 3, 4, 5, 6};
+
+
 void setup()
 {
-  //fulhax strömförsörjning
-  pinMode(4, OUTPUT);
-  digitalWrite(4, HIGH);
   //debug only
   Serial.begin(9600);
   
@@ -80,22 +80,15 @@ void setup()
   //Get a GPS starting position
   feedGps();
   //getGpsFix();
-  Serial.println("Setup complete");
+  //Serial.println("Setup complete");
 }
 
 //send back the proximity and gps data upon request
 //we always send a total of NUMBER_OF_PROXIMITY_SENSORS + 3 bytes (=6+3=9)
 void i2cEventHandler()
 { 
-  for(byte i = 0; i < NUMBER_OF_PROXIMITY_SENSORS; i++)
-  {
-    Wire.send(byte(ProximityData[i].getMedian()));
-  }
-  for(byte i = 0; i < 3; i++)
-  {
-    Wire.send(gpsData[i]);
-  }
-  Serial.println("I2C!!");
+  Wire.send(sensorData, 9);
+  //Serial.println("I2C request");
 }
 
 //Send a LOW-HIGH-LOW pulse to selected pin
@@ -115,8 +108,8 @@ byte getProximity(byte sensor)
   //Waiting for the pulse from the sensor is time critical, disable interrupts!
   noInterrupts();
   pulse(proximitySensorTrigPin[sensor]);
-  Serial.println("woopiedo");
-  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH)/PROXIMITY_CONSTANT;
+  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH, 50000)/PROXIMITY_CONSTANT;
+ //Serial.println(proximity);
   interrupts();
 
   //We need to fit this into a byte..
@@ -151,6 +144,7 @@ void updateProximityData()
   for(byte i = 0; i < NUMBER_OF_PROXIMITY_SENSORS; i++)
   {
     ProximityData[i].add(newProximityData[i]);
+    sensorData[i] = ProximityData[i].getMedian();
   }
   interrupts();
 
@@ -170,9 +164,9 @@ void updateGpsData()
     {
       //Serial.println("ja!");
       Gps.get_position(&latitude, &longitude, &age);
-      gpsData[0] = latitude;
-      gpsData[1] = longitude;
-      gpsData[2] = age;
+      sensorData[7] = latitude;
+      sensorData[8] = longitude;
+      sensorData[9] = age;
       Serial.println(latitude);
     }
   }
@@ -182,9 +176,13 @@ void printProximityData()
 {
   for(int i = 0; i<NUMBER_OF_PROXIMITY_SENSORS; i++)
   {
+
     Serial.print(i);
     Serial.print(':');
-    Serial.println(ProximityData[i].getMedian());
+    Serial.print(ProximityData[i].getMedian());
+    Serial.print("=");
+    byte w = ProximityData[i].getMedian();
+    Serial.println(w, DEC);
   }
   Serial.println();
   delay(500);
@@ -267,6 +265,7 @@ bool feedGps()
 void loop()
 {
   updateProximityData();
+
   //printProximityData();
   if (feedGps())
   {
