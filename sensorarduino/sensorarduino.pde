@@ -55,7 +55,6 @@ int i = 0;
 
 long xByte, yByte, ageByte;
 
-
 void setup()
 {
   //fulhax strömförsörjning
@@ -116,7 +115,7 @@ byte getProximity(byte sensor)
   //Waiting for the pulse from the sensor is time critical, disable interrupts!
   noInterrupts();
   pulse(proximitySensorTrigPin[sensor]);
-
+  Serial.println("woopiedo");
   proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH)/PROXIMITY_CONSTANT;
   interrupts();
 
@@ -268,15 +267,13 @@ bool feedGps()
 void loop()
 {
   updateProximityData();
+  //printProximityData();
   if (feedGps())
   {
     Gps.get_position(&lat, &lon, &age);
-    printGpsData();
+    //printGpsData();
     convertPosition();
-    printPos();
+    //printPos();
   }
-
-  printProximityData();
-  //printGpsData();
 }
 
