@@ -51,27 +51,3 @@ void run()
 		data[0] = 60;
 	Angle.write(data[0]);
 }
-void getRPM()
-{
-	/* Räknar ut aktuell hastighet utifrån hall-sensordata */
-}
-void getDataCompass()
-{
-	/* Hämta kompassdata */
-}
-void setSpeed()
-{
-	/*  Välj hastighet utifrån rpm*/
-}
-void setDirection()
-{
-	/* Sätt servovinkel efter önskad riktning */
-}
-void receiveEvent()
-{
-	/* Ta emot hastighet och kompass-vinkel */
-}
-void requestEvent()
-{
-	/* Skicka faktiskt hastighet */
-}

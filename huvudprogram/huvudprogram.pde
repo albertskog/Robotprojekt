@@ -3,11 +3,7 @@
 
 #define PACKAGE_LENGTH 40
 #define INPACKAGE_LENGTH 15
-<<<<<<< HEAD
 #define SENSORPACKAGE_LENGTH 8
-=======
-#define SENSORPACKAGE_LENGTH 10
->>>>>>> sensorarduino1
 
 typedef int sample;
 const byte MAX_NUMBER_OF_READINGS = 5;
@@ -31,11 +27,7 @@ int velocity;
 byte inSensorPackage[SENSORPACKAGE_LENGTH];
 
 //US sensors
-<<<<<<< HEAD
 // boolean cheakSensors = true;
-=======
-boolean cheakSensors = true;
->>>>>>> sensorarduino1
 byte front;
 byte frontRight;
 byte frontLeft;
@@ -52,11 +44,8 @@ byte dataAge;
 byte data[7];
 int x, y, z;
 int compassInValue;
-<<<<<<< HEAD
 
 int i;
-=======
->>>>>>> sensorarduino1
 
 void setup()
 {
@@ -64,7 +53,6 @@ void setup()
   Wire.begin();
 }
 
-<<<<<<< HEAD
 /*void getSensorPackage()
 {
   Wire.requestFrom(2, 9);    // request 9 bytes
@@ -74,23 +62,10 @@ void setup()
     inSensorPackage[i++] = Wire.receive();
   }
   parseSensorPackage(); 
-=======
-void getSensorPackage()
-{
-  while()
-  {
-    inI2CPackage[];
-  }
-  if()
-  {
-  checkSensorData();
-  }
->>>>>>> sensorarduino1
 }
 
 void parseSensorPackage()
 {
-<<<<<<< HEAD
    front = inSensorPackage[0];
    frontLeft = inSensorPackage[1];
    frontRight = inSensorPackage[2];
@@ -144,26 +119,6 @@ void getCompassData()
   y = -((((int)data[2]) << 8) | data[3]);
   z = -((((int)data[4]) << 8) | data[5]);  
 
-=======
-  
-}
-
-void getCompassData()
-{
-  int heading;
-  Wire.requestFrom(0x1E, 7);    // request 7 bytes
-  i = 0;
-  while(Wire.available())    // slave may send less than requested
-  { 
-    data[i++] = Wire.receive();
-  }
-
-  //Parse data from DXRA, DXRB, DYRA, DYRB, DZRA, DZRB intp x, y, z
-  x = -((((int)data[0]) << 8) | data[1]);
-  y = -((((int)data[2]) << 8) | data[3]);
-  z = -((((int)data[4]) << 8) | data[5]);  
-
->>>>>>> sensorarduino1
   compassInValue = (atan2(x,y))*180/M_PI; // argument of (x-axis)/(y-axis) and to degrees.  
 }
 
@@ -235,7 +190,6 @@ void prepareDataPackage()
 void buildDataPackage()
 {
   dataPackage[1] = packageNumber++;
-<<<<<<< HEAD
   dataPackage[4] = xPos; // GPS x-pos   
   dataPackage[6] = yPos; // GPS y-pos
   dataPackage[8] = dataAge; // Age of GPS data
@@ -266,39 +220,6 @@ void loop()
   buildDataPackage();
   //  buildDrivePackage();
 
-=======
-  dataPackage[4] = firstDestinationX;
-  dataPackage[6] = firstDestinationY;
-  dataPackage[8] = '_';
-  dataPackage[11] = '_';
-  dataPackage[15] = '_';
-  dataPackage[17] = secondDestinationX;
-  dataPackage[19] = secondDestinationY;
-  dataPackage[21] = '_';
-  dataPackage[23] = '_';
-  dataPackage[25] = velocity;
-  dataPackage[28] = '_';
-  dataPackage[31] = '_';
-  dataPackage[34] = '_';
-  dataPackage[37] = inpackageNumber;  
-}
-
-void loop()
-{
-  // BT 
-  prepareDataPackage();
-  buildDataPackage();
-  sendDataPackage(); // sist
-  getInPackage();
-  
-  // I^2C
-  getSensorPackage();
-  parseSensorPackage(); 
-  buildDrivePackage();
-  controlSensors();
-  getCompass();
-
->>>>>>> sensorarduino1
   for(int a = 0; a < PACKAGE_LENGTH; a++)
   {
   Serial.print(dataPackage[a]);
