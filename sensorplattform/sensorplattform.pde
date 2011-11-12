@@ -20,16 +20,10 @@ int x, y, z;
 int compass;
 
 //Variables
-<<<<<<< HEAD
-char inPackage[10];
-String dataPackage;
-byte packageNumber;
-=======
 int inPackageLength = 15;// (33?)
 boolean cheakInPackage;
 char dataPackage[PACKAGE_LENGTH];
 byte packageNumber = 0;
->>>>>>> sensorarduino1
 int i;
 
 //UV sensor
@@ -37,9 +31,6 @@ int eco = 3;
 int trig = 7;
 int USsensor;
 
-<<<<<<< HEAD
-boolean cheak = true;
-=======
 //in package
 int inpackageNumber;
 int firstDestinationX;
@@ -47,7 +38,6 @@ int firstDestinationY;
 int secondDestinationX;
 int secondDestinationY;
 int velocity;
->>>>>>> sensorarduino1
 
 void setup()
 {
@@ -65,42 +55,7 @@ void setup()
   pinMode(trig, OUTPUT); 
 }
 
-<<<<<<< HEAD
-void getPackage()
-{
-  i = 0;
-  int w = 0;
-  boolean cheak = true;
-  //Check for new instructions    
-    while(Serial.available())
-    {
-      if(i < 11)
-      {
-        inPackage[i++] = char(Serial.read());
-      }
-      else
-      { 
-        cheak = false;
-        break;
-      }
-    }
-      if(cheak == false)
-      {
-      Serial.println("Fel fel fel, Send ett nytt!");
-      }
-      else
-      {
-        while(w != i)
-        {
-          Serial.print(inPackage[w++]);
-        }
-      }      
-}
-
-void parseInPackage()
-=======
 void parseInPackage(char inPackage[])
->>>>>>> sensorarduino1
 {
    inpackageNumber = inPackage[1];
    firstDestinationX = inPackage[4];
@@ -138,9 +93,6 @@ void getInPackage()
   }
 }
 
-<<<<<<< HEAD
-int getCompassData()
-=======
 void prepareDataPackage()
 {
   dataPackage[0] = 'N';
@@ -170,7 +122,6 @@ void prepareDataPackage()
 }
 
 /*int getCompassData()
->>>>>>> sensorarduino1
 {
   int heading;
   Wire.requestFrom(0x1E, 7);    // request 7 bytes
@@ -209,61 +160,6 @@ int getUSData()
 */
 void buildDataPackage()
 {
-<<<<<<< HEAD
-  dataPackage = "";
-  //Begin data package
-  dataPackage += '$';
-  //Put a number on it
-  dataPackage += 'N';
-  dataPackage += String(packageNumber++,DEC);
-  dataPackage += '#';
-  
-  // GPS data
-  dataPackage += 'P';
-  dataPackage += "0000";
-  dataPackage += ';';
-  dataPackage += "0000";
-  dataPackage += ';';
-  dataPackage += "0000";
-  dataPackage += '#';
-  
-  //Compass data
-  dataPackage += "C ";
-  dataPackage += String(compass,DEC);
-  dataPackage += " #";
-  
-  //UV-sensor data
-  dataPackage += "U ";
-  dataPackage += String(USsensor,DEC); // data from US sensor;
-  dataPackage += " ;";
-  dataPackage += "000";
-  dataPackage += ';';
-  dataPackage += "000";
-  dataPackage += ';';
-  dataPackage += "000";
-  dataPackage += ';';
-  dataPackage += "000";
-  dataPackage += ';';
-  dataPackage += "000";
-  dataPackage += '#';
-  
-  //Steering angel
-  dataPackage += 'A';
-  dataPackage += "000";
-  dataPackage += '#';
-  
-  //Distance
-  dataPackage += 'D';
-  dataPackage += "0000";
-  dataPackage += '#';
-  
-  //Package nr
-  dataPackage += 'L';
-//  dataPackage += inPackage;
-  dataPackage += '#';
- 
-  dataPackage += char(10);
-=======
   dataPackage[1] = packageNumber++;
   dataPackage[4] = firstDestinationX;
   dataPackage[6] = firstDestinationY;
@@ -279,27 +175,10 @@ void buildDataPackage()
   dataPackage[31] = '_';
   dataPackage[34] = '_';
   dataPackage[37] = inpackageNumber;  
->>>>>>> sensorarduino1
 }
 
 void loop()
 {
-<<<<<<< HEAD
-  if (Serial.available())
-  {
-    getPackage();
-  }
-  parseInPackage();
-  USsensor = getUSData();
-  compass = getCompassData();
-  
-
-  //Build sensor data package
-  buildDataPackage();
-  
-  //Send the package
-  Serial.print(dataPackage);
-=======
   prepareDataPackage();
   buildDataPackage();
 //  USsensor = getUSData();
@@ -310,7 +189,6 @@ void loop()
   {
   Serial.print(dataPackage[a]);
   }
->>>>>>> sensorarduino1
   
   delay(500);
 }
