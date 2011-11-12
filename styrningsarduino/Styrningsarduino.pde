@@ -59,13 +59,15 @@ void loop()
 	getDataCompass();
 	setDirection();
 	setSpeed();
+	//Compute(); För PID-regleringen
+	sendData();
 }
 void getSpeed()
 {
 	revsTotal = revsTotal + revs;
 	int deltaT = millis() - timeStamp;
 	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
- 	actualSpeed = /* konstant * (revs/deltaT) */(revs/deltaT);
+ 	actualSpeed = 60000*(revs/deltaT);
 
 	revs = 0;
 	timeStamp = millis();
@@ -73,7 +75,6 @@ void getSpeed()
 void getDataCompass()
 {
 	/* Hämta kompassdata, smått modifierad från sensorplattformen */
-	
 	Wire.requestFrom(0x1E, 7);    // request 7 bytes
 	unsigned int i = 0;
 	byte data[7]; //array to temporarily store parameters from compass
@@ -91,8 +92,8 @@ void getDataCompass()
 void setSpeed()
 {
 	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
-	int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
-	
+	//int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
+	int newSpeed = data[1]; //OBS endast test!!!
 	if(newSpeed < maximumForward)
 		newSpeed = maximumForward;
 	if(newSpeed > maximumBackwards)
@@ -108,7 +109,7 @@ void setDirection()
 		newAngle = servoMin;
 	if(newAngle > servoMax)
 		newAngle = servoMax;
-		
+
 	Angle.write(newAngle);
 }
 void requestEvent()
@@ -116,7 +117,7 @@ void requestEvent()
 	Wire.send(actualSpeed);
 	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
 }
-void receiveEvent(int howMany/* howMany kommer inte användas */)
+void receiveEvent()
 {
 	byte data[2];
 	unsigned int i = 0;
@@ -127,5 +128,12 @@ void receiveEvent(int howMany/* howMany kommer inte användas */)
 	}
 	direction = data[0];
 	desiredSpeed = data[1]; /*OBS! måste räknas om till RPM, eller vad vi nu ska använda!*/ 
-	/* 0 till 100, 50 är stillastående, använd map-kommandot*/
+	/* -100 till 100, 0 är stillastående, använd map-kommandot*/
+}
+void sendData()
+{
+	Serial.println("Data:");
+	Serial.print("Hastighet (RPM):"); Serial.println(actualSpeed);
+	Serial.print("Inskickad riktning: "); Serial.println(direction);
+	Serial.print("Kompassriktning: "); Serial.println(compassData);
 }
