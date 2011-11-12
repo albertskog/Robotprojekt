@@ -8,30 +8,68 @@ Sensor program
 #include <Wire.h>
 #include <RunningMedian.h>
 
-#define I2C_ADDRESS 1
+//define corners
+#define LON_1 16.16270216
+#define LAT_1 58.58865287
+
+#define LON_2 16.16300559
+#define LAT_2 58.58867050
+
+#define LON_3 16.16296569
+#define LAT_3 58.58907323
+
+#define LON_4 16.16266411
+#define LAT_4 58.58906116
+
+#define LON_5 16.16267061
+#define LAT_5 58.58892476
+
+//define A & B
+#define LON_A 16.16276325
+#define LAT_A 58.58903116
+
+#define LON_B 16.16294636
+#define LAT_B 58.58869834
+
+//Variables
+#define I2C_ADDRESS 2
 #define GPS_BAUDRATE 57600
-#define NUMBER_OF_PROXIMITY_SENSORS 3
+#define NUMBER_OF_PROXIMITY_SENSORS 6
 #define PROXIMITY_CONSTANT 58    //Used to convert time into cm..
+
 
 //Pins
 byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  7, 9, 11};
+  3, 5, 6, 7, 8, 9};
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  6, 8, 10};
+  2, 10, 11, 12, 13, 9};
 
 NewSoftSerial nss(2, 3);
 TinyGPS Gps;
 RunningMedian ProximityData[NUMBER_OF_PROXIMITY_SENSORS];
-long gpsData[3];
+byte gpsData[3];
+
+long lat, lon, lat_0, lon_0, c_x, c_y;
+unsigned long age;
+int i = 0;
+
+long xByte, yByte, ageByte;
+
 
 void setup()
 {
+  //fulhax strömförsörjning
+  pinMode(4, OUTPUT);
+  digitalWrite(4, HIGH);
+  //debug only
+  Serial.begin(9600);
+  
   //Setup I2C
   Wire.begin(I2C_ADDRESS);
   Wire.onRequest(i2cEventHandler);
 
   //Setup UART for GPS communication
-  Serial.begin(GPS_BAUDRATE);
+  nss.begin(GPS_BAUDRATE);
 
   //Define inputs/outouts
   for(byte i = 0; i < NUMBER_OF_PROXIMITY_SENSORS; i++)
@@ -39,7 +77,11 @@ void setup()
     pinMode(proximitySensorTrigPin[i], OUTPUT);
     pinMode(proximitySensorEchoPin[i], INPUT);
   }
-
+  
+  //Get a GPS starting position
+  feedGps();
+  //getGpsFix();
+  Serial.println("Setup complete");
 }
 
 //send back the proximity and gps data upon request
@@ -52,8 +94,9 @@ void i2cEventHandler()
   }
   for(byte i = 0; i < 3; i++)
   {
-    //Wire.send(gpsData[i]);
+    Wire.send(gpsData[i]);
   }
+  Serial.println("I2C!!");
 }
 
 //Send a LOW-HIGH-LOW pulse to selected pin
@@ -148,20 +191,92 @@ void printProximityData()
   delay(500);
 }
 
+//Get x coordinates and calculate average to establish starting position
+void getGpsFix()
+{
+  int x = 10;
+  while(i < x)
+  {
+    if (feedGps())
+    {
+      Gps.get_position(&lat, &lon, &age);
+      printGpsData();
+      //convertPosition();
+      lat_0 += lat;
+      lon_0 += lon;
+      i++;
+      delay(500);
+    }
+  }
+  lat_0 /= x;
+  lon_0 /= x;
+
+  Serial.println("Fix established. Start position is:");
+  Serial.println(lon_0);
+  Serial.println(lat_0);
+}
+
+
+void convertPosition()
+{
+  noInterrupts();
+  xByte = (lon - lon_0);
+  yByte = (lat - lat_0);
+  if(age << 255)
+  {
+    ageByte = age;
+  }
+  else
+  {
+    ageByte = 255;
+  }
+  interrupts();
+}
+
 void printGpsData()
 {
-  for(int i = 0; i<2; i++)
+  Serial.print("Lat/Long(10^-5 deg): "); 
+  Serial.print(lat); 
+  Serial.print(", "); 
+  Serial.print(lon); 
+  Serial.print(" Fix age: "); 
+  Serial.print(age); 
+  Serial.println("ms.");
+}
+
+void printPos()
+{
+  Serial.print("X/Y: "); 
+  Serial.print(xByte, DEC); 
+  Serial.print(", "); 
+  Serial.print(yByte, DEC); 
+  Serial.print(" Fix age: "); 
+  Serial.print(ageByte); 
+  Serial.println("ms.");
+}
+
+bool feedGps()
+{
+  while (nss.available())
   {
-    Serial.println(gpsData[i]);
+    if (Gps.encode(nss.read()))
+      return true;
   }
+  return false;
 }
 
 void loop()
 {
   updateProximityData();
-  updateGpsData();
+  if (feedGps())
+  {
+    Gps.get_position(&lat, &lon, &age);
+    printGpsData();
+    convertPosition();
+    printPos();
+  }
 
-  //printProximityData();
+  printProximityData();
   //printGpsData();
 }
 
