@@ -1,4 +1,4 @@
-/*Styrningsarduino, den nuvarande koden kräver att hallPin är på pin3 på arduinon dvs, inte om det nuvarande PCB-kortet (rev1)*/
+/*Styrningsarduino, den nuvarande koden krï¿½ver att hallPin ï¿½r pï¿½ pin3 pï¿½ arduinon dvs, inte om det nuvarande PCB-kortet (rev1)*/
 
 #include <Servo.h>
 #include <Wire.h>
@@ -37,18 +37,18 @@ void hallInterrupt()
 }
 void setup()
 {
-	//Inställningar för I2C
+	//Instï¿½llningar fï¿½r I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
 	Wire.onReceive(receiveEvent); // register event
 	Wire.onRequest(requestEvent); // register event
 	
-	//Servoinställningar
+	//Servoinstï¿½llningar
 	Speed.attach(motorPin);
 	Angle.attach(servoPin);
 	Speed.write(noSpeed);
 	Angle.write(servoCenter);
 
-	//Hallsensorinställningar
+	//Hallsensorinstï¿½llningar
 	pinMode(hallPin, OUTPUT);
 	digitalWrite(hallPin, HIGH);
 	attachInterrupt(1, hallInterrupt, RISING);
@@ -67,24 +67,26 @@ void loop()
 	getDataCompass();
 	setDirection();
 	setSpeed();
-	//Compute(); För PID-regleringen
+	//Compute(); Fï¿½r PID-regleringen
 	sendData();
 }
 void getSpeed()
 {
+
 	//revsTotal = revsTotal + revs;
 	long deltaT = (millis() - timeStamp);
 	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
  	RPM = ((revs*60000)/deltaT);
 	//map(value, fromLow, fromHigh, toLow, toHigh)
 	actualSpeed = (RPM/6.3);
+
 	revs = 0;
 	timeStamp = millis();
 	
 }
 void getDataCompass()
 {
-	/* Hämta kompassdata, smått modifierad från sensorplattformen */
+	/* Hï¿½mta kompassdata, smï¿½tt modifierad frï¿½n sensorplattformen */
 	Wire.requestFrom(0x1E, 7);    // request 7 bytes
 	unsigned int i = 0;
 	byte data[7]; //array to temporarily store parameters from compass
@@ -101,7 +103,7 @@ void getDataCompass()
 }
 void setSpeed()
 {
-	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
+	/*  Vï¿½lj hastighet utifrï¿½n nuvarande hastighet, rï¿½kna om till grader, PID-reglering */
 	//int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
 	int newSpeed = desiredSpeed; //OBS endast test!!!
 	Speed.write(newSpeed);
@@ -126,6 +128,7 @@ void requestEvent()
 {
 	Wire.send(actualSpeed/* multiplicerat med konstant för att få i önskvärd storhet */);
 	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
+
 }
 void receiveEvent(int HowMany)
 {
@@ -136,6 +139,7 @@ void receiveEvent(int HowMany)
 		data[i] = Wire.receive(); // receive byte as a character
 		i++;
 	}
+
 	//direction = data[0];
 	//desiredSpeed = data[1]; 
 	/* omräkning till procent */
@@ -143,6 +147,7 @@ void receiveEvent(int HowMany)
 	//desiredSpeed = map(data[1], 0, 100, noSpeed, maximumForward);
 	//if(data[1] < 0)
 	//desiredSpeed = map(data[1], 0, -100, noSpeed, maximumBackwards);
+
 }
 void sendData()
 {
