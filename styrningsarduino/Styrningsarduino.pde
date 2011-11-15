@@ -7,28 +7,29 @@
 #define motorPin 5
 #define hallPin 3
 
-#define wireAdress 3
+#define wireAdress 1
 #define servoMax 110
 #define servoMin 60
-#define maximumForward 120
-#define maximumBackwards 40
+#define maximumForward 40
+#define maximumBackwards 137
 #define servoCenter 90
 #define noSpeed 88 //värde då fartreglaget är i neutral
+#define rpmToSpeed 1 //värde för omräkning från rpm till grader till fartreglage! Ska testas fram
 
-#define angleP 1 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
-#define speedP 1 //värde för P-reglering. dvs hur mycket differansen mellan verklig hastighet och tänkt spelar inpå inskickat värde till motorstyrningen
+#define angleP 5 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
 
 Servo Speed;
 Servo Angle;
 
 int compassData;
 int direction; //inskickad riktning från huvudarduino
-int desiredSpeed; //inskickad hastighet från huvudarduino 0 = max bakåt 127 = stillastående 255 = max frammåt
+int desiredSpeed; //inskickad men omräknad från huvudarduino
 int actualSpeed;
+float RPM;
 
 int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
 int revs = 0; //antal varv sedan senast beräknat RPM-värde.
-int timeStamp= 0; //tid vid senast beräknat RPM-värde.
+int timeStamp = 0; //tid vid senast beräknat RPM-värde.
 
 void hallInterrupt()
 {
@@ -51,6 +52,13 @@ void setup()
 	pinMode(hallPin, OUTPUT);
 	digitalWrite(hallPin, HIGH);
 	attachInterrupt(1, hallInterrupt, RISING);
+	
+	
+	
+	//DEBUGKOD
+	Serial.begin(9600);
+	desiredSpeed = 80;
+	direction = 90;
 }
 
 void loop()
@@ -64,13 +72,15 @@ void loop()
 }
 void getSpeed()
 {
-	revsTotal = revsTotal + revs;
-	int deltaT = millis() - timeStamp;
+	//revsTotal = revsTotal + revs;
+	long deltaT = (millis() - timeStamp);
 	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
- 	actualSpeed = 60000*(revs/deltaT);
-
+ 	RPM = ((revs*60000)/deltaT);
+	//map(value, fromLow, fromHigh, toLow, toHigh)
+	actualSpeed = (RPM/6.3);
 	revs = 0;
 	timeStamp = millis();
+	
 }
 void getDataCompass()
 {
@@ -94,27 +104,27 @@ void setSpeed()
 	/*  Välj hastighet utifrån nuvarande hastighet, räkna om till grader, PID-reglering */
 	//int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
 	int newSpeed = desiredSpeed; //OBS endast test!!!
-	if(newSpeed < maximumForward)
-		newSpeed = maximumForward;
-	if(newSpeed > maximumBackwards)
-		newSpeed = maximumBackwards;
-
 	Speed.write(newSpeed);
 }
 void setDirection()
 {
-	int newAngle = direction+angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
+	if(direction >= 180)
+		int newAngle = 90 + angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
+	if(direction < 180)
+		int newAngle = 90 + angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
 	
+	//Så vi inte svänger utanför max/min för servot
 	if(newAngle < servoMin)
 		newAngle = servoMin;
 	if(newAngle > servoMax)
 		newAngle = servoMax;
 
 	Angle.write(newAngle);
+	Serial.print("Styrvinkel: "); Serial.println(newAngle);
 }
 void requestEvent()
 {
-	Wire.send(actualSpeed);
+	Wire.send(actualSpeed/* multiplicerat med konstant för att få i önskvärd storhet */);
 	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
 }
 void receiveEvent(int HowMany)
@@ -126,14 +136,20 @@ void receiveEvent(int HowMany)
 		data[i] = Wire.receive(); // receive byte as a character
 		i++;
 	}
-	direction = data[0];
-	desiredSpeed = data[1]; /*OBS! måste räknas om till RPM, eller vad vi nu ska använda!*/ 
-	/* -100 till 100, 0 är stillastående, använd map-kommandot*/
+	//direction = data[0];
+	//desiredSpeed = data[1]; 
+	/* omräkning till procent */
+	//if(data[1] >= 0) //Frammåt!
+	//desiredSpeed = map(data[1], 0, 100, noSpeed, maximumForward);
+	//if(data[1] < 0)
+	//desiredSpeed = map(data[1], 0, -100, noSpeed, maximumBackwards);
 }
 void sendData()
 {
+	//Funktion för att få debugdata
 	Serial.println("Data:");
-	Serial.print("Hastighet (RPM):"); Serial.println(actualSpeed);
+	Serial.print("Hastighet (grader):"); Serial.println(actualSpeed);
+	Serial.print("Önskad hastighet (grader):"); Serial.println(desiredSpeed);
 	Serial.print("Inskickad riktning: "); Serial.println(direction);
 	Serial.print("Kompassriktning: "); Serial.println(compassData);
 }
