@@ -13,23 +13,30 @@
 #define maximumForward 40
 #define maximumBackwards 137
 #define servoCenter 90
+<<<<<<< HEAD
 #define noSpeed 88 //värde då fartreglaget är i neutral
 #define rpmToSpeed 1 //värde för omräkning från rpm till grader till fartreglage! Ska testas fram
 
 #define angleP 5 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
 
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
+
 Servo Speed;
 Servo Angle;
 
 int compassData;
+<<<<<<< HEAD
 int direction; //inskickad riktning från huvudarduino
 int desiredSpeed; //inskickad men omräknad från huvudarduino
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 int actualSpeed;
 float RPM;
 
+<<<<<<< HEAD
 int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
 int revs = 0; //antal varv sedan senast beräknat RPM-värde.
 int timeStamp = 0; //tid vid senast beräknat RPM-värde.
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 
 void hallInterrupt()
 {
@@ -72,6 +79,7 @@ void loop()
 }
 void getSpeed()
 {
+<<<<<<< HEAD
 
 	//revsTotal = revsTotal + revs;
 	long deltaT = (millis() - timeStamp);
@@ -79,6 +87,8 @@ void getSpeed()
  	RPM = ((revs*60000)/deltaT);
 	//map(value, fromLow, fromHigh, toLow, toHigh)
 	actualSpeed = (RPM/6.3);
+
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 
 	revs = 0;
 	timeStamp = millis();
@@ -110,10 +120,10 @@ void setSpeed()
 }
 void setDirection()
 {
-	if(direction >= 180)
-		int newAngle = 90 + angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
-	if(direction < 180)
-		int newAngle = 90 + angleP*(direction-compassData); /*Kan hända att det ska vara 90-compassP*... */
+<<<<<<< HEAD
+
+	int newAngle = direction+angleP*(direction-compassData); /*Kan hï¿½nda att det ska vara 90-compassP*... */
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 	
 	//Så vi inte svänger utanför max/min för servot
 	if(newAngle < servoMin)
@@ -126,9 +136,12 @@ void setDirection()
 }
 void requestEvent()
 {
+<<<<<<< HEAD
+
 	Wire.send(actualSpeed/* multiplicerat med konstant för att få i önskvärd storhet */);
 	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
-
+	
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 }
 void receiveEvent(int HowMany)
 {
@@ -139,6 +152,7 @@ void receiveEvent(int HowMany)
 		data[i] = Wire.receive(); // receive byte as a character
 		i++;
 	}
+<<<<<<< HEAD
 
 	//direction = data[0];
 	//desiredSpeed = data[1]; 
@@ -148,6 +162,7 @@ void receiveEvent(int HowMany)
 	//if(data[1] < 0)
 	//desiredSpeed = map(data[1], 0, -100, noSpeed, maximumBackwards);
 
+>>>>>>> 860dd51e62593c5aaa6411c9529ac794e697dbb1
 }
 void sendData()
 {
