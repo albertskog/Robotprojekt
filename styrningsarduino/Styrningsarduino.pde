@@ -34,7 +34,7 @@ float RPM;
 
 int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
 int revs = 0; //antal varv sedan senast beräknat RPM-värde.
-int timeStamp = 0; //tid vid senast beräknat RPM-värde.
+long timeStamp = 0; //tid vid senast beräknat RPM-värde.
 
 
 void hallInterrupt()
@@ -43,23 +43,21 @@ void hallInterrupt()
 }
 void setup()
 {
-	//Instï¿½llningar fï¿½r I2C
+	//Inställningar för I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
-	Wire.onReceive(receiveEvent); // register event
-	Wire.onRequest(requestEvent); // register event
+	//Wire.onReceive(receiveEvent); // register event
+	//Wire.onRequest(requestEvent); // register event
 	
-	//Servoinstï¿½llningar
+	//Servoinställningar
 	Speed.attach(motorPin);
 	Angle.attach(servoPin);
 	Speed.write(noSpeed);
 	Angle.write(servoCenter);
 
-	//Hallsensorinstï¿½llningar
+	//Hallsensorinställningar
 	pinMode(hallPin, OUTPUT);
 	digitalWrite(hallPin, HIGH);
 	attachInterrupt(1, hallInterrupt, RISING);
-	
-	
 	
 	//DEBUGKOD
 	Serial.begin(9600);
@@ -71,7 +69,7 @@ void loop()
 {
 	getSpeed();
 	getDataCompass();
-	setDirection();
+	//setDirection();
 	setSpeed();
 	sendData();
 }
@@ -82,27 +80,16 @@ void getSpeed()
 	long deltaT = (millis() - timeStamp);
 	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
  	RPM = ((revs*60000)/deltaT);
-	//map(value, fromLow, fromHigh, toLow, toHigh)
 	actualSpeed = (RPM/6.3);
-
-
-
 	revs = 0;
 	timeStamp = millis();
 	
 }
 void getDataCompass()
 {
-
-
+	byte data[7]; //array to temporarily store parameters from compass
 	Wire.requestFrom(0x1E, 7);    // request 7 bytes
 	int i = 0;
-
-	byte data[7]; //array to temporarily store parameters from compass
-
-	Wire.requestFrom(0x1E, 7);    // request 7 bytes
-	unsigned int i = 0;
-	byte data[7]; //array to temporarily store parameters from compass
 	while(Wire.available())    // slave may send less than requested
 	{ 
 		data[i++] = Wire.receive();
@@ -117,7 +104,7 @@ void getDataCompass()
 void setSpeed()
 {
 
-	int newSpeed = desiredSpeed+speedP*(desiredSpeed - actualSpeed);
+	int newSpeed = desiredSpeed-speedP*(desiredSpeed - actualSpeed);
 
 	if(newSpeed < maximumForward)
 		newSpeed = maximumForward;
@@ -126,11 +113,12 @@ void setSpeed()
 
 
 	Speed.write(newSpeed);
+        Serial.print("newSpeed: "); Serial.println(newSpeed);  
 }
 void setDirection()
 {
 
-	int newAngle = 90+angleP*(direction-compassData); /*Kan hï¿½nda att det ska vara 90-compassP*... */
+	int newAngle = 90+angleP*(direction-compassData); //Kan hända att det ska vara -
 
 	if(newAngle < servoMin)
 		newAngle = servoMin;
@@ -151,8 +139,7 @@ void receiveEvent(int HowMany)
 	unsigned int i = 0;
 	while(Wire.available()) // loop through all but the last
 	{
-		data[i] = Wire.receive(); // receive byte as a character
-		i++;
+		data[i++] = Wire.receive(); // receive byte as a character
 	}
 	//omräkning till procent
 	if(data[1] >= 0) //Frammåt!
