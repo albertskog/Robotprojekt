@@ -19,7 +19,10 @@
 #define rpmToSpeed 1 //värde för omräkning från rpm till grader till fartreglage! Ska testas fram
 
 #define angleP 2 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
-#define speedP 0.1
+#define speedP 0.2
+
+int HMC6352Address = 0x42;
+int slaveAddress;
 
 Servo Speed;
 Servo Angle;
@@ -43,11 +46,13 @@ void hallInterrupt()
 }
 void setup()
 {
+	
+	
 	//Inställningar för I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
 	//Wire.onReceive(receiveEvent); // register event
 	//Wire.onRequest(requestEvent); // register event
-	
+	slaveAddress = HMC6352Address >> 1;   // This results in 0x21 as the address to pass to TWI
 	//Servoinställningar
 	Speed.attach(motorPin);
 	Angle.attach(servoPin);
@@ -69,9 +74,10 @@ void loop()
 {
 	getSpeed();
 	getDataCompass();
-	//setDirection();
+	setDirection();
 	setSpeed();
 	sendData();
+        delay(400);
 }
 void getSpeed()
 {
@@ -87,19 +93,23 @@ void getSpeed()
 }
 void getDataCompass()
 {
-	byte data[7]; //array to temporarily store parameters from compass
-	Wire.requestFrom(0x1E, 7);    // request 7 bytes
+	byte headingData[2];
+	Wire.beginTransmission(slaveAddress);
+	Wire.send("A");              // The "Get Data" command
+	Wire.endTransmission();
+	delay(10);                   // The HMC6352 needs at least a 70us (microsecond) delay
+	  // after this command.  Using 10ms just makes it safe
+	  // Read the 2 heading bytes, MSB first
+	  // The resulting 16bit word is the compass heading in 10th's of a degree
+	  // For example: a heading of 1345 would be 134.5 degrees
+	Wire.requestFrom(slaveAddress, 2);        // Request the 2 byte heading (MSB comes first)
 	int i = 0;
-	while(Wire.available())    // slave may send less than requested
+	while(Wire.available() && i < 2)
 	{ 
-		data[i++] = Wire.receive();
+		headingData[i] = Wire.receive();
+	    i++;
 	}
-	//Parse data from DXRA, DXRB, DYRA, DYRB, DZRA, DZRB intp x, y, z
-	int x = - ((((int)data[0]) << 8) | data[1]);
-	int y = - ((((int)data[2]) << 8) | data[3]);
-	int z = - ((((int)data[4]) << 8) | data[5]);  
-	
-	compassData = (atan2(x,y))*180/M_PI; // argument of (x-axis)/(y-axis) and to degrees. 
+	compassData = (headingData[0]*256 + headingData[1])/10;  // Put the MSB and LSB together
 }
 void setSpeed()
 {
@@ -117,9 +127,8 @@ void setSpeed()
 }
 void setDirection()
 {
-
-	int newAngle = 90+angleP*(direction-compassData); //Kan hända att det ska vara -
-
+	int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
+		
 	if(newAngle < servoMin)
 		newAngle = servoMin;
 	if(newAngle > servoMax)
