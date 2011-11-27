@@ -1,15 +1,19 @@
+//N1#D2;3#E4;5#S5
 #include <Wire.h>
 #include <AverageList.h>
 
 #define PACKAGE_LENGTH 40
 #define INPACKAGE_LENGTH 15
-#define SENSORPACKAGE_LENGTH 8
+#define SENSORPACKAGE_LENGTH 9
+#define DIRECTIONDATA_LENGTH 3
 
 typedef int sample;
 const byte MAX_NUMBER_OF_READINGS = 5;
 sample storage[MAX_NUMBER_OF_READINGS] = {
   0};
 AverageList<sample> distance = AverageList<sample>( storage, MAX_NUMBER_OF_READINGS );
+
+long t = 0;
 
 //out package
 char dataPackage[PACKAGE_LENGTH];
@@ -25,6 +29,9 @@ int velocity;
 
 //in I2C
 byte inSensorPackage[SENSORPACKAGE_LENGTH];
+
+// out I2C
+byte directiveData[DIRECTIONDATA_LENGTH];
 
 //US sensors
 // boolean cheakSensors = true;
@@ -47,10 +54,12 @@ int compassInValue;
 
 int i;
 
+
 void setup()
 {
   Serial.begin(115200); //Depends on the BT-module
   Wire.begin();
+  prepareDataPackage();
 }
 
 void getSensorPackage()
@@ -61,49 +70,56 @@ void getSensorPackage()
   { 
     inSensorPackage[i++] = Wire.receive();
   }
+  if(inSensorPackage[0] < 100)
+  {
+    cheakSensors();
+  }
+  else
+  {
+    velocity = 15; 
+  }
+
   parseSensorPackage(); 
 }
 
 void parseSensorPackage()
 {
-   front = inSensorPackage[0];
-   frontLeft = inSensorPackage[1];
-   frontRight = inSensorPackage[2];
-   left = inSensorPackage[3];
-   right = inSensorPackage[4];
-   back = inSensorPackage[5]; 
-   xPos = inSensorPackage[6]; 
-   yPos = inSensorPackage[7]; 
-   dataAge = inSensorPackage[8]; 
-   
-   if(front < 30 || frontLeft < 30 || frontRight < 30)
-   {
-   cheakSensors();
-   }
+  front = inSensorPackage[0];
+  frontLeft = inSensorPackage[1];
+  frontRight = inSensorPackage[2];
+  left = inSensorPackage[3];
+  right = inSensorPackage[4];
+  back = inSensorPackage[5]; 
+  xPos = inSensorPackage[6]; 
+  yPos = inSensorPackage[7]; 
+  dataAge = inSensorPackage[8]; 
 }
 
 void cheakSensors()
 {
-  if(front < 30)
+  if(front < 100)
   {
-   stopRun();
-  }
-  else if(front < 30)
-  {
-   stopRun();
-  }
-  else if(front < 30)
-  {
-   stopRun();
-  }
-  else
-  {
+    stopRun();
   }
 }
 
 void stopRun()
 {
-  Serial.println("nu är det still"); 
+  velocity = 0;
+  updateDirective();
+  delay(500);
+  // sätt status till hinder och skicka till kts. 
+}
+
+void updateDirective()
+{
+  directiveData[0] = (compassInValue >> 8);
+  directiveData[1] = compassInValue;
+  directiveData[2] = velocity;
+
+  Wire.beginTransmission(1);           // transmit to device #4
+  Wire.send(directiveData, 3);         // sends five bytes 
+  Wire.endTransmission();              // stop transmitting
 }
 
 void getCompassData()
@@ -124,15 +140,15 @@ void getCompassData()
 
 void parseInPackage(char inPackage[])
 {
-   inpackageNumber = inPackage[1];
-   firstDestinationX = inPackage[4];
-   firstDestinationY = inPackage[6];
-   secondDestinationX = inPackage[9];
-   secondDestinationY = inPackage[11];
-   velocity = inPackage[14];   
+  inpackageNumber = inPackage[1];
+  firstDestinationX = inPackage[4];
+  firstDestinationY = inPackage[6];
+  secondDestinationX = inPackage[9];
+  secondDestinationY = inPackage[11];
+  velocity = inPackage[14];   
 }
- 
-void getInPackage()
+
+void getInPackage() // BT
 {
   i = 0;
   char inPackage[INPACKAGE_LENGTH-1];
@@ -151,7 +167,6 @@ void getInPackage()
   // cheking the array
   if((inPackage[0] == 'N') && (inPackage[3] == 'D') && (inPackage[8] == 'E') && (inPackage[13] == 'S'))
   {
-  // Serial.println("lyckat paket");
     parseInPackage(inPackage);
   } 
   else
@@ -193,7 +208,8 @@ void buildDataPackage()
   dataPackage[4] = xPos; // GPS x-pos   
   dataPackage[6] = yPos; // GPS y-pos
   dataPackage[8] = dataAge; // Age of GPS data
-  dataPackage[11] = compassInValue;  // compass
+  dataPackage[11] = (compassInValue >> 8);  // compass
+  dataPackage[12] = compassInValue;
   dataPackage[15] = front;  // US sensors
   dataPackage[17] = frontLeft;
   dataPackage[19] = frontRight;
@@ -210,19 +226,31 @@ void loop()
 {
   // BT 
   prepareDataPackage();
-//  getCompassData();
-  //sendDataPackage(); // sist
+  //getCompassData();
+
+  getCompassData();
   getInPackage();
-    
+
   // I^2C
   getSensorPackage();
   parseSensorPackage(); 
-  buildDataPackage();
-  //  buildDrivePackage();
 
-  for(int a = 0; a < PACKAGE_LENGTH; a++)
+  buildDataPackage();
+
+  //  sendDataPackage(); // sist
+
+  //  buildDrivePackage();
+  updateDirective();
+  if((millis()-t) > 500)
   {
-  Serial.print(dataPackage[a]);
+     buildDataPackage();
+    for(int a = 0; a < PACKAGE_LENGTH; a++)
+    {
+      Serial.print(dataPackage[a]);
+    }
+    Serial.println(front, DEC);
+    t = millis();
+	Serial.println(compassInValue, DEC);
   }
   Serial.print("front:");
   Serial.println(front, DEC);
@@ -235,3 +263,4 @@ void loop()
   Serial.println(dataAge, DEC);
   delay(500);
 }
+
