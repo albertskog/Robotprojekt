@@ -53,7 +53,7 @@ void setup()
   Wire.begin();
 }
 
-/*void getSensorPackage()
+void getSensorPackage()
 {
   Wire.requestFrom(2, 9);    // request 9 bytes
   i = 0;
@@ -105,7 +105,7 @@ void stopRun()
 {
   Serial.println("nu är det still"); 
 }
-*/
+
 void getCompassData()
 {
   Wire.requestFrom(0x1E, 7);    // request 7 bytes
@@ -211,12 +211,12 @@ void loop()
   // BT 
   prepareDataPackage();
 //  getCompassData();
-//  sendDataPackage(); // sist
+  //sendDataPackage(); // sist
   getInPackage();
     
   // I^2C
- // getSensorPackage();
- // parseSensorPackage(); 
+  getSensorPackage();
+  parseSensorPackage(); 
   buildDataPackage();
   //  buildDrivePackage();
 
@@ -224,6 +224,14 @@ void loop()
   {
   Serial.print(dataPackage[a]);
   }
+  Serial.print("front:");
+  Serial.println(front, DEC);
   
+  Serial.print("x:");
+  Serial.print(xPos, DEC);
+  Serial.print(" y:");
+  Serial.print(yPos, DEC);
+  Serial.print(" age:");
+  Serial.println(dataAge, DEC);
   delay(500);
 }
