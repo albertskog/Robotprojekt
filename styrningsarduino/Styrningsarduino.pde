@@ -67,7 +67,7 @@ void setup()
 	//DEBUGKOD
 	Serial.begin(9600);
 	desiredSpeed = 180;
-	direction = 158;
+	direction = 90;
 }
 
 void loop()
@@ -128,18 +128,16 @@ void setSpeed()
 void setDirection()
 {
 	//int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
-	
-	
-	if (direction < 10 || direction < 350)
+	if (direction < 10 && direction < 350)
 	{
 		//Liten sväng
-		if(compassData > 350);
+		if(compassData > 350)
 		{
 			//Sväng vänster
 			Angle.write(75);
 			Serial.println("1");
 		}
-		if(compassData < 10);
+		if(compassData < 10)
 		{
 			//Sväng höger
 			Angle.write(105);
@@ -151,47 +149,29 @@ void setDirection()
 			Angle.write(90);
             Serial.println("3");
 		}
-		//Stor sväng
-		/*if()
-		{
-			sväng mer höger
-		}
-		if()
-		{
-			sväng mer vänster
-		}*/
 		
 	}
 	else
 	{
-		if(compassData <= (direction+10) && compassData >= direction-10);
+		Serial.println("ELSE!");
+		if(compassData <= (direction+10) && compassData >= direction-10)
 		{
 			//Kör frammåte
 			Angle.write(90);
             Serial.println("4");
 		}
-		if(compassData > direction + 10);
+		if(compassData > direction + 10)
 		{
 			//Sväng höger
 			Angle.write(105);
             Serial.println("5");
 		}
-		if(compassData < direction - 10);
+		if(compassData < direction - 10)
 		{
 			//Sväng vänster
 			Angle.write(75);
 		    Serial.println("6");
         }
-		
-		//Stor sväng
-		/*if()
-		{
-			sväng mer höger
-		}
-		if()
-		{
-			sväng mer vänster
-		}*/
 	}
         Serial.print("CompassData: "); Serial.println(compassData);
 }
