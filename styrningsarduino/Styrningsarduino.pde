@@ -66,8 +66,8 @@ void setup()
 	
 	//DEBUGKOD
 	Serial.begin(9600);
-	desiredSpeed = 82;
-	//direction = 158;
+	desiredSpeed = 180;
+	direction = 158;
 }
 
 void loop()
@@ -77,7 +77,7 @@ void loop()
 	setDirection();
 	setSpeed();
 	//sendData();
-    //delay(400);
+    delay(400);
 }
 void getSpeed()
 {
@@ -128,33 +128,72 @@ void setSpeed()
 void setDirection()
 {
 	//int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
-	int deltaC = direction-compassData;
-	if (deltaC >= 3)
-{
-		Angle.write(75);
-		//Serial.println("100grader!");
-}
-	if (deltaC >= 13)
-{
-		Angle.write(60);
-		//Serial.println("110grader!");
-}
-	if (deltaC <= -3)
-{
-		Angle.write(105);
-  		//Serial.println("70grader!");
-}
-	if (deltaC <= -13)
-{
-		Angle.write(120);
-		//Serial.println("60grader!");
-}
-	if(deltaC > -3 && deltaC < 3) 
-{
-		Angle.write(90);
-        //Serial.println("90grader!");
-}
-	Serial.print("DeltaC: "); Serial.println(deltaC);
+	
+	
+	if (direction < 10 || direction < 350)
+	{
+		//Liten sväng
+		if(compassData > 350);
+		{
+			//Sväng vänster
+			Angle.write(75);
+			Serial.println("1");
+		}
+		if(compassData < 10);
+		{
+			//Sväng höger
+			Angle.write(105);
+			Serial.println("2");
+		}
+		if(compassData <=10 && compassData >= 350)
+		{
+			//Kör frammåte
+			Angle.write(90);
+            Serial.println("3");
+		}
+		//Stor sväng
+		/*if()
+		{
+			sväng mer höger
+		}
+		if()
+		{
+			sväng mer vänster
+		}*/
+		
+	}
+	else
+	{
+		if(compassData <= (direction+10) && compassData >= direction-10);
+		{
+			//Kör frammåte
+			Angle.write(90);
+            Serial.println("4");
+		}
+		if(compassData > direction + 10);
+		{
+			//Sväng höger
+			Angle.write(105);
+            Serial.println("5");
+		}
+		if(compassData < direction - 10);
+		{
+			//Sväng vänster
+			Angle.write(75);
+		    Serial.println("6");
+        }
+		
+		//Stor sväng
+		/*if()
+		{
+			sväng mer höger
+		}
+		if()
+		{
+			sväng mer vänster
+		}*/
+	}
+        Serial.print("CompassData: "); Serial.println(compassData);
 }
 void requestEvent()
 {
@@ -177,6 +216,8 @@ void receiveEvent(int HowMany)
 
 	direction = data[0];
 	desiredSpeed = data[1]; 
+
+
 	/* omräkning till procent */
 	if(data[1] >= 0) //Frammåt!
 	desiredSpeed = map(data[1], 0, 100, noSpeed, maximumForward);
