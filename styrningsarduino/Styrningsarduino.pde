@@ -8,7 +8,7 @@
 #define hallPin 3
 
 #define wireAdress 1
-#define servoMax 110
+#define servoMax 125
 #define servoMin 60
 #define maximumForward 40
 #define maximumBackwards 137
@@ -18,7 +18,7 @@
 #define noSpeed 88 //värde då fartreglaget är i neutral
 #define rpmToSpeed 1 //värde för omräkning från rpm till grader till fartreglage! Ska testas fram
 
-#define angleP 2 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
+#define angleP 1 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
 #define speedP 0.2
 
 int HMC6352Address = 0x42;
@@ -50,8 +50,8 @@ void setup()
 	
 	//Inställningar för I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
-	//Wire.onReceive(receiveEvent); // register event
-	//Wire.onRequest(requestEvent); // register event
+	Wire.onReceive(receiveEvent); // register event
+	Wire.onRequest(requestEvent); // register event
 	slaveAddress = HMC6352Address >> 1;   // This results in 0x21 as the address to pass to TWI
 	//Servoinställningar
 	Speed.attach(motorPin);
@@ -66,8 +66,8 @@ void setup()
 	
 	//DEBUGKOD
 	Serial.begin(9600);
-	desiredSpeed = 80;
-	direction = 90;
+	desiredSpeed = 82;
+	//direction = 158;
 }
 
 void loop()
@@ -76,8 +76,8 @@ void loop()
 	getDataCompass();
 	setDirection();
 	setSpeed();
-	sendData();
-        delay(400);
+	//sendData();
+    //delay(400);
 }
 void getSpeed()
 {
@@ -123,19 +123,38 @@ void setSpeed()
 
 
 	Speed.write(newSpeed);
-        Serial.print("newSpeed: "); Serial.println(newSpeed);  
+    //Serial.print("newSpeed: "); Serial.println(newSpeed);  
 }
 void setDirection()
 {
-	int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
-		
-	if(newAngle < servoMin)
-		newAngle = servoMin;
-	if(newAngle > servoMax)
-		newAngle = servoMax;
-
-	Angle.write(newAngle);
-	Serial.print("Styrvinkel: "); Serial.println(newAngle);
+	//int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
+	int deltaC = direction-compassData;
+	if (deltaC >= 3)
+{
+		Angle.write(75);
+		//Serial.println("100grader!");
+}
+	if (deltaC >= 13)
+{
+		Angle.write(60);
+		//Serial.println("110grader!");
+}
+	if (deltaC <= -3)
+{
+		Angle.write(105);
+  		//Serial.println("70grader!");
+}
+	if (deltaC <= -13)
+{
+		Angle.write(120);
+		//Serial.println("60grader!");
+}
+	if(deltaC > -3 && deltaC < 3) 
+{
+		Angle.write(90);
+        //Serial.println("90grader!");
+}
+	Serial.print("DeltaC: "); Serial.println(deltaC);
 }
 void requestEvent()
 {
