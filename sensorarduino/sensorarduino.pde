@@ -40,23 +40,23 @@ Sensor program
 
 //Pins
 byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  3, 3, 3, 3, 3, 3};
+  6, 13, 6, 13, 6, 13};
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  2, 2, 2, 2, 2, 2};
+  7, 12, 7, 12, 7, 12};
 
-NewSoftSerial GpsPort(4, 5);
+NewSoftSerial GpsPort(2,3);
 TinyGPS Gps;
 RunningMedian ProximityData[NUMBER_OF_PROXIMITY_SENSORS];
-byte sensorData[9];
+byte sensorData[NUMBER_OF_PROXIMITY_SENSORS+4+4+1];
 
-long lat, lon, lat_0, lon_0, c_x, c_y;
+long lat, lon, lat_0, lon_0;
 unsigned long age;
 int i = 0;
 
-long xByte, yByte, ageByte;
+byte xByte, yByte, ageByte;
 
-byte p[6] = {1, 2, 3, 4, 5, 6};
-
+byte p[6] = {
+  1, 2, 3, 4, 5, 6};
 
 long t=0;
 
@@ -64,7 +64,7 @@ void setup()
 {
   //debug only
   Serial.begin(115200);
-  
+
   //Setup I2C
   Wire.begin(I2C_ADDRESS);
   Wire.onRequest(i2cEventHandler);
@@ -78,18 +78,15 @@ void setup()
     pinMode(proximitySensorTrigPin[i], OUTPUT);
     pinMode(proximitySensorEchoPin[i], INPUT);
   }
-  
-  //Get a GPS starting position
-  //feedGps();
-  //getGpsFix();
-  Serial.println("Setup complete");
+
+  //Serial.println("Setup complete");
 }
 
 //send back the proximity and gps data upon request
 //we always send a total of NUMBER_OF_PROXIMITY_SENSORS + 3 bytes (=6+3=9)
 void i2cEventHandler()
 { 
-  Wire.send(sensorData, 9);
+  Wire.send(sensorData, NUMBER_OF_PROXIMITY_SENSORS+4+4+1);
   //Serial.println("I2C request");
 }
 
@@ -108,11 +105,11 @@ byte getProximity(byte sensor)
   int proximity;
 
   //Waiting for the pulse from the sensor is time critical, disable interrupts!
-  noInterrupts();
+  //noInterrupts();
   pulse(proximitySensorTrigPin[sensor]);
-  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH, 15000)/PROXIMITY_CONSTANT;
- //Serial.println(proximity);
-  interrupts();
+  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH)/PROXIMITY_CONSTANT;
+  //Serial.println(proximity);
+  //interrupts();
 
   //We need to fit this into a byte..
   if((proximity < 255) & (proximity > 0))
@@ -152,33 +149,10 @@ void updateProximityData()
 
 }
 
-void updateGpsData()
-{
-  long latitude, longitude;
-  unsigned long age;
-  unsigned long chars;
-  unsigned short sentences, failed_checksum;
-
-  while(GpsPort.available())
-  {
-    //Serial.println("available!");
-    if (Gps.encode(GpsPort.read()))
-    {
-      //Serial.println("ja!");
-      Gps.get_position(&latitude, &longitude, &age);
-      sensorData[7] = latitude;
-      sensorData[8] = longitude;
-      sensorData[9] =(byte) age;
-      Serial.println(latitude);
-    }
-  }
-}
-
 void printProximityData()
 {
   for(int i = 0; i<NUMBER_OF_PROXIMITY_SENSORS; i++)
   {
-
     Serial.print(i);
     Serial.print(": ");
     Serial.println(ProximityData[i].getMedian(), DEC);
@@ -187,38 +161,20 @@ void printProximityData()
   //delay(500);
 }
 
-//Get x coordinates and calculate average to establish starting position
-void getGpsFix()
-{
-  int x = 10;
-  while(i < x)
-  {
-    if (feedGps())
-    {
-      Gps.get_position(&lat, &lon, &age);
-      printGpsData();
-      //convertPosition();
-      lat_0 += lat;
-      lon_0 += lon;
-      i++;
-      delay(500);
-    }
-  }
-  lat_0 /= x;
-  lon_0 /= x;
-
-  Serial.println("Fix established. Start position is:");
-  Serial.println(lon_0);
-  Serial.println(lat_0);
-}
-
 
 void convertPosition()
 {
   noInterrupts();
-  xByte = (lon - lon_0);
-  yByte = (lat - lat_0);
-  if(age << 255)
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 0] = (byte) (lat >> 24);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 1] = (byte) (lat >> 16);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 2] = (byte) (lat >> 8);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 3] = (byte) lat;
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 4] = (byte) (lon >> 24);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 5] = (byte) (lon >> 16);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 6] = (byte) (lon >> 8);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 7] = (byte) lon;
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 8] = (byte) age;
+  if(age < 255)
   {
     ageByte = age;
   }
@@ -240,17 +196,6 @@ void printGpsData()
   Serial.println("ms.");
 }
 
-void printPos()
-{
-  Serial.print("X/Y: "); 
-  Serial.print(xByte, DEC); 
-  Serial.print(", "); 
-  Serial.print(yByte, DEC); 
-  Serial.print(" Fix age: "); 
-  Serial.print(ageByte); 
-  Serial.println("ms.");
-}
-
 bool feedGps()
 {
   while (GpsPort.available())
@@ -264,15 +209,19 @@ bool feedGps()
 void loop()
 {
   updateProximityData();
-
-  //printProximityData();
   if (feedGps())
   {
     Gps.get_position(&lat, &lon, &age);
-    //printGpsData();
     convertPosition();
-    //printPos();
   }
-   
+
+  if (millis() - t > 1000)
+  {
+    printProximityData();
+    printGpsData();
+    t=millis();
+  }
+
 }
+
 
