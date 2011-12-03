@@ -66,8 +66,8 @@ void setup()
 	
 	//DEBUGKOD
 	Serial.begin(9600);
-	desiredSpeed = 180;
-	direction = 90;
+	desiredSpeed = 88;
+	//direction = 90;
 }
 
 void loop()
@@ -75,9 +75,8 @@ void loop()
 	getSpeed();
 	getDataCompass();
 	setDirection();
-	setSpeed();
 	//sendData();
-    delay(400);
+   // delay(400);
 }
 void getSpeed()
 {
@@ -114,20 +113,19 @@ void getDataCompass()
 void setSpeed()
 {
 
-	int newSpeed = desiredSpeed-speedP*(desiredSpeed - actualSpeed);
+	int newSpeed = desiredSpeed;/*-speedP*(desiredSpeed - actualSpeed);*/
 
 	if(newSpeed < maximumForward)
 		newSpeed = maximumForward;
 	if(newSpeed > maximumBackwards)
 		newSpeed = maximumBackwards;
 
-
 	Speed.write(newSpeed);
     //Serial.print("newSpeed: "); Serial.println(newSpeed);  
 }
 void setDirection()
 {
-	//int	newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
+	//int newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
 	if (direction < 10 && direction < 350)
 	{
 		//Liten sväng
@@ -135,45 +133,43 @@ void setDirection()
 		{
 			//Sväng vänster
 			Angle.write(75);
-			Serial.println("1");
+			//Serial.println("1");
 		}
 		if(compassData < 10)
 		{
 			//Sväng höger
 			Angle.write(105);
-			Serial.println("2");
+			//Serial.println("2");
 		}
 		if(compassData <=10 && compassData >= 350)
 		{
 			//Kör frammåte
 			Angle.write(90);
-            Serial.println("3");
+            //Serial.println("3");
 		}
-		
 	}
 	else
 	{
-		Serial.println("ELSE!");
+		//Serial.println("ELSE!");
 		if(compassData <= (direction+10) && compassData >= direction-10)
 		{
 			//Kör frammåte
 			Angle.write(90);
-            Serial.println("4");
+            //Serial.println("4");
 		}
 		if(compassData > direction + 10)
 		{
 			//Sväng höger
 			Angle.write(105);
-            Serial.println("5");
+            //Serial.println("5");
 		}
 		if(compassData < direction - 10)
 		{
 			//Sväng vänster
 			Angle.write(75);
-		    Serial.println("6");
+			//Serial.println("6");
         }
 	}
-        Serial.print("CompassData: "); Serial.println(compassData);
 }
 void requestEvent()
 {
@@ -182,28 +178,29 @@ void requestEvent()
 }
 void receiveEvent(int HowMany)
 {
-	byte data[2];
+	byte data[3];
 	unsigned int i = 0;
 	while(Wire.available()) // loop through all but the last
 	{
 		data[i++] = Wire.receive(); // receive byte as a character
 	}
-	//omräkning till procent
-	if(data[1] >= 0) //Frammåt!
-	desiredSpeed = map(data[1], 0, 100, noSpeed, maximumForward);
-	if(data[1] < 0)
-	desiredSpeed = map(data[1], 0, -100, noSpeed, maximumBackwards);
+	direction = ((((int)data[0]) << 8) | data[1]);
 
-	direction = data[0];
-	desiredSpeed = data[1]; 
-
-
+	Serial.print("'O'nskad hastighet i procent: "); Serial.println(data[2]);
+	
 	/* omräkning till procent */
-	if(data[1] >= 0) //Frammåt!
-	desiredSpeed = map(data[1], 0, 100, noSpeed, maximumForward);
-	if(data[1] < 0)
-	desiredSpeed = map(data[1], 0, -100, noSpeed, maximumBackwards);
-
+	if(data[2] >= 0) //Frammåt!
+	  desiredSpeed = map(data[2], 0, 100, noSpeed, maximumForward);
+	if(data[2] < 0)
+          {
+          Serial.print("Data2: "); Serial.println(data[2]);
+          desiredSpeed = map(data[2]+100, 1, 100, noSpeed, maximumBackwards);
+          }
+        
+	setSpeed();
+        Serial.print("'O'nskad hastighet: "); Serial.println(desiredSpeed);
+	Serial.print("'O'nskad riktning: "); Serial.println(direction);
+	Serial.print("Kompassriktning: "); Serial.println(compassData);
 }
 void sendData()
 {
