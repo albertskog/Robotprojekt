@@ -23,7 +23,7 @@ byte packageNumber = 0;
 byte inpackageNumber;
 byte wayPointLon[4];
 byte wayPointLat[4];
-byte velocity = 30; 
+byte velocity; 
 /*
  byte wayPointX2[4];
  byte wayPointY2[4];
@@ -56,17 +56,45 @@ byte compassData[2];
 int compassInValue;
 int newCompassDirection;
 int i;
-long lat2 = 5859010;
-long lon2 = 1617592;
+long lat2 ;//= 5859010;
+long lon2 ;//= 1617592;
 long deltaLAT;
 long deltaLON;
 int fi_direction;
+
+byte speedref; // för test
 
 void setup()
 {
 	Serial.begin(115200); //Depends on the BT-module
 	Wire.begin();
 	prepareDataPackage();
+        delay(500);
+        velocity = 15;
+       // getWaypoint(); 
+
+}
+
+void getWaypoint() // endast för test
+{
+  
+  while(inSensorPackage[9] == 0)
+  {
+          getSensorPackage();
+  }
+                lat2 = (
+				(((long)inSensorPackage[6])<<24) |
+		                (((long)inSensorPackage[7])<<16) |
+	                	(((long)inSensorPackage[8])<<8) |
+		                ((long)inSensorPackage[9]));
+		
+		lon2 = (
+				(((long)inSensorPackage[10])<<24) |
+		                (((long)inSensorPackage[11])<<16) |
+		                (((long)inSensorPackage[12])<<8) |
+		                ((long)inSensorPackage[13]));
+                lat2 = lat2+8;
+                lon2 = lon2-8;
 }
 
 void directionGpsWayPoint() // get angel between Gps and wqypint   
@@ -118,7 +146,7 @@ void getSensorPackage() // sensorpackage from sensorarduino
 	{ 
 		inSensorPackage[i++] = Wire.receive();
 	}
-	if(inSensorPackage[0] < 100)
+	if(inSensorPackage[0] < 100) // justeras!
 	{
 		checkSensors();
 	}
@@ -127,7 +155,8 @@ void getSensorPackage() // sensorpackage from sensorarduino
 		
 	}	
 	parseSensorPackage(); // parse sensor data 
-	checkDestination();
+        checkSensors();
+	//checkDestination();
 } 
 
 void checkDestination()
@@ -141,11 +170,11 @@ void checkDestination()
 
 void parseSensorPackage()	// Build package from sensorarduino
 {
-	front = inSensorPackage[0];
-	frontLeft = inSensorPackage[1];
-	frontRight = inSensorPackage[2];
-	left = inSensorPackage[3];
-	right = inSensorPackage[4];
+        right = inSensorPackage[0];
+        frontRight = inSensorPackage[1];
+	front = inSensorPackage[2];
+        frontLeft = inSensorPackage[3];
+	left = inSensorPackage[4];
 	back = inSensorPackage[5]; 
 	
 	lonByte[0] = inSensorPackage[6];
@@ -162,7 +191,7 @@ void parseSensorPackage()	// Build package from sensorarduino
 
 void checkSensors() // sensor value to smal (Work whit)
 {
-	if(front < 100)
+	if(front < 50)
 	{
 		stopRun();
 	}
@@ -170,20 +199,26 @@ void checkSensors() // sensor value to smal (Work whit)
 
 void stopRun() // stop
 {
+        velocity = -30;
 	updateDirective();
-	delay(500);
+	delay(3000);
 	// sätt status till hinder och skicka till kts?. 
 }
 
 void updateDirective() // Build package to controlarduino and sends it 
 {
+  if (speedref != velocity)
+  {
+      newCompassDirection = 90;
 	directiveData[0] = (newCompassDirection >> 8);
 	directiveData[1] = newCompassDirection;
 	directiveData[2] = velocity;
+        speedref = velocity;                 // test
 	
 	Wire.beginTransmission(1);           // transmit to device #4
 	Wire.send(directiveData, 3);         // sends five bytes 
 	Wire.endTransmission();              // stop transmitting
+  }
 }
 
 void getCompassData() // get compass data from I2C
@@ -328,20 +363,15 @@ void sendDataPackage() // at BT.
 	}
 	Serial.println(stat, DEC);
 	Serial.println(velocity, DEC);
-	Serial.print("lat= ");
-	Serial.print(latByte[3],DEC);
-	Serial.print("/");
-	Serial.print(lat2 & 0xf,DEC);
-	Serial.print("  lon= ");
-	Serial.print(lonByte[3],DEC);
-	Serial.print("/");
-	Serial.println(lon2 & 0xf,DEC);
+	Serial.print("front= ");
+	Serial.println(front,DEC);
+        velocity = 15;
 }
 
 void loop()
 {
 	getSensorPackage();	// för att få gps 
-	getInPackage();		// för att få önskad waypiot
+//	getInPackage();		// för att få önskad waypiot
 	
 	updateDirective();  // skicka via I2C till styrarduino
 	
