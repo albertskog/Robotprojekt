@@ -340,7 +340,6 @@ void sendDataPackage() // at BT.
 
 void loop()
 {
-<<<<<<< HEAD
 	getSensorPackage();	// för att få gps 
 	getInPackage();		// för att få önskad waypiot
 	
@@ -353,44 +352,4 @@ void loop()
 	directionGpsWayPoint();
 	
 	sendDataPackage();
-=======
-  // BT 
-  prepareDataPackage();
-  //getCompassData();
-
-  getCompassData();
-  getInPackage();
-
-  // I^2C
-  getSensorPackage();
-  parseSensorPackage(); 
-
-  buildDataPackage();
-
-  //  sendDataPackage(); // sist
-
-  //  buildDrivePackage();
-  updateDirective();
-  if((millis()-t) > 500)
-  {
-     buildDataPackage();
-    for(int a = 0; a < PACKAGE_LENGTH; a++)
-    {
-      Serial.print(dataPackage[a]);
-    }
-    Serial.println(front, DEC);
-    t = millis();
-	Serial.println(compassInValue, DEC);
-  }
-  Serial.print("front:");
-  Serial.println(front, DEC);
-  
-  Serial.print("x:");
-  Serial.print(xPos, DEC);
-  Serial.print(" y:");
-  Serial.print(yPos, DEC);
-  Serial.print(" age:");
-  Serial.println(dataAge, DEC);
-  delay(500);
->>>>>>> d3ce049aa70394a2ca1e807f388f8de759ad90c0
 }
