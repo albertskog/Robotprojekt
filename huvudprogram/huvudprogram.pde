@@ -393,6 +393,9 @@ void loop()
   Serial.println(dataAge, DEC);
   delay(500);
 <<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> d3ce049aa70394a2ca1e807f388f8de759ad90c0
+=======
 >>>>>>> d3ce049aa70394a2ca1e807f388f8de759ad90c0
 =======
 >>>>>>> d3ce049aa70394a2ca1e807f388f8de759ad90c0
