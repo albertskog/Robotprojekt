@@ -225,13 +225,20 @@ void buildDataPackage()
 void loop()
 {
   // BT 
+  prepareDataPackage();
+  //getCompassData();
+
   getCompassData();
   getInPackage();
 
   // I^2C
   getSensorPackage();
   parseSensorPackage(); 
+
+  buildDataPackage();
+
   //  sendDataPackage(); // sist
+
   //  buildDrivePackage();
   updateDirective();
   if((millis()-t) > 500)
@@ -245,5 +252,15 @@ void loop()
     t = millis();
 	Serial.println(compassInValue, DEC);
   }
+  Serial.print("front:");
+  Serial.println(front, DEC);
+  
+  Serial.print("x:");
+  Serial.print(xPos, DEC);
+  Serial.print(" y:");
+  Serial.print(yPos, DEC);
+  Serial.print(" age:");
+  Serial.println(dataAge, DEC);
+  delay(500);
 }
 
