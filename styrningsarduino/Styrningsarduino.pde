@@ -15,10 +15,10 @@
 #define servoCenter 90
 
 
-#define noSpeed 88 //värde då fartreglaget är i neutral
-#define rpmToSpeed 1 //värde för omräkning från rpm till grader till fartreglage! Ska testas fram
+#define noSpeed 88 //vï¿½rde dï¿½ fartreglaget ï¿½r i neutral
+#define rpmToSpeed 1 //vï¿½rde fï¿½r omrï¿½kning frï¿½n rpm till grader till fartreglage! Ska testas fram
 
-#define angleP 1 //värde för P-reglering. dvs differens mellan kompassvärde och styrvinkel
+#define angleP 1 //vï¿½rde fï¿½r P-reglering. dvs differens mellan kompassvï¿½rde och styrvinkel
 #define speedP 0.2
 
 int HMC6352Address = 0x42;
@@ -29,15 +29,15 @@ Servo Angle;
 
 int compassData;
 
-int direction; //inskickad riktning från huvudarduino
-int desiredSpeed; //inskickad men omräknad från huvudarduino
+int direction; //inskickad riktning frï¿½n huvudarduino
+int desiredSpeed; //inskickad men omrï¿½knad frï¿½n huvudarduino
 
 int actualSpeed;
 float RPM;
 
-int revsTotal = 0; //antal snurrade varv på kardanaxeln, används inte atm
-int revs = 0; //antal varv sedan senast beräknat RPM-värde.
-long timeStamp = 0; //tid vid senast beräknat RPM-värde.
+int revsTotal = 0; //antal snurrade varv pï¿½ kardanaxeln, anvï¿½nds inte atm
+int revs = 0; //antal varv sedan senast berï¿½knat RPM-vï¿½rde.
+long timeStamp = 0; //tid vid senast berï¿½knat RPM-vï¿½rde.
 
 
 void hallInterrupt()
@@ -48,18 +48,18 @@ void setup()
 {
 	
 	
-	//Inställningar för I2C
+	//Instï¿½llningar fï¿½r I2C
 	Wire.begin(wireAdress);       // join i2c bus with address #4
 	Wire.onReceive(receiveEvent); // register event
 	Wire.onRequest(requestEvent); // register event
 	slaveAddress = HMC6352Address >> 1;   // This results in 0x21 as the address to pass to TWI
-	//Servoinställningar
+	//Servoinstï¿½llningar
 	Speed.attach(motorPin);
 	Angle.attach(servoPin);
 	Speed.write(noSpeed);
 	Angle.write(servoCenter);
 
-	//Hallsensorinställningar
+	//Hallsensorinstï¿½llningar
 	pinMode(hallPin, OUTPUT);
 	digitalWrite(hallPin, HIGH);
 	attachInterrupt(1, hallInterrupt, RISING);
@@ -83,7 +83,7 @@ void getSpeed()
 	revsTotal = revsTotal + revs;
 	//revsTotal = revsTotal + revs;
 	long deltaT = (millis() - timeStamp);
-	/* varv per millisekund på kardanaxeln, omräknat till hastighet*/
+	/* varv per millisekund pï¿½ kardanaxeln, omrï¿½knat till hastighet*/
  	RPM = ((revs*60000)/deltaT);
 	actualSpeed = (RPM/6.3);
 	revs = 0;
@@ -125,56 +125,64 @@ void setSpeed()
 }
 void setDirection()
 {
-	//int newAngle = 90 + angleP*(direction-compassData); //Kan hända att det ska vara -
-	if (direction < 10 && direction < 350)
+	if (direction < 10 || direction > 350)
 	{
-		//Liten sväng
-		if(compassData > 350)
+		//Liten svÃ¤ng
+		Serial.println("IF!");
+                if(compassData <=10 || compassData >= 350)
 		{
-			//Sväng vänster
-			Angle.write(75);
-			//Serial.println("1");
-		}
-		if(compassData < 10)
-		{
-			//Sväng höger
-			Angle.write(105);
-			//Serial.println("2");
-		}
-		if(compassData <=10 && compassData >= 350)
-		{
-			//Kör frammåte
+			//KÃ¶r frammÃ¥t
 			Angle.write(90);
-            //Serial.println("3");
+                        Serial.println("Loopnr: 3");
+                }
+		if(compassData > 10 && compassData < 180)
+		{
+			//SvÃ¤ng hÃ¶ger
+			Angle.write(120);
+			Serial.println("Loopnr: 1");
 		}
+		if(compassData < 350 && compassData >= 180)
+		{
+			//SvÃ¤ng vÃ¤nster
+			Angle.write(70);
+			Serial.println("Loopnr: 2");
+		}		
 	}
 	else
 	{
-		//Serial.println("ELSE!");
+		Serial.println("ELSE!");
 		if(compassData <= (direction+10) && compassData >= direction-10)
 		{
-			//Kör frammåte
+			//KÃ¶r frammÃ¥t
 			Angle.write(90);
-            //Serial.println("4");
+                        Serial.println("Loopnr: 4");
 		}
-		if(compassData > direction + 10)
+		if(compassData > direction + 10 && compassData < direction + 180)
 		{
-			//Sväng höger
-			Angle.write(105);
-            //Serial.println("5");
+			//SvÃ¤ng hÃ¶ger
+			Angle.write(120);
+            		Serial.println("Loopnr: 5");
 		}
-		if(compassData < direction - 10)
+		//Loop fÃ¶r att fÃ¶rhindra "bugg" dÃ¥ fÃ¥r frÃ¥n 0 till 360.
+		if(compassData > direction + 10 && compassData > direction + 180)
 		{
-			//Sväng vänster
-			Angle.write(75);
-			//Serial.println("6");
-        }
+			//SvÃ¤ng hÃ¶ger
+			Angle.write(70);
+            		Serial.println("Loopnr: 5.5");
+		}
+		
+		if(compassData < direction - 10 && compassData > direction - 180)
+		{
+			//SvÃ¤ng vÃ¤nster
+			Angle.write(70);
+			Serial.println("Loopnr: 6");
+        	}
 	}
 }
 void requestEvent()
 {
-	Wire.send(actualSpeed/* multiplicerat med konstant för att få i önskvärd storhet */);
-	Wire.send(revsTotal/* multiplicerat med konstant för att få i önskvärd storhet */);
+	Wire.send(actualSpeed/* multiplicerat med konstant fï¿½r att fï¿½ i ï¿½nskvï¿½rd storhet */);
+	Wire.send(revsTotal/* multiplicerat med konstant fï¿½r att fï¿½ i ï¿½nskvï¿½rd storhet */);
 }
 void receiveEvent(int HowMany)
 {
@@ -188,8 +196,8 @@ void receiveEvent(int HowMany)
 
 	Serial.print("'O'nskad hastighet i procent: "); Serial.println(data[2]);
 	
-	/* omräkning till procent */
-	if(data[2] >= 0) //Frammåt!
+	/* omrï¿½kning till procent */
+	if(data[2] >= 0) //Frammï¿½t!
 	  desiredSpeed = map(data[2], 0, 100, noSpeed, maximumForward);
 	if(data[2] < 0)
           {
@@ -204,10 +212,10 @@ void receiveEvent(int HowMany)
 }
 void sendData()
 {
-	//Funktion för att få debugdata
+	//Funktion fï¿½r att fï¿½ debugdata
 	Serial.println("Data:");
 	Serial.print("Hastighet (grader):"); Serial.println(actualSpeed);
-	Serial.print("Önskad hastighet (grader):"); Serial.println(desiredSpeed);
+	Serial.print("ï¿½nskad hastighet (grader):"); Serial.println(desiredSpeed);
 	Serial.print("Inskickad riktning: "); Serial.println(direction);
 	Serial.print("Kompassriktning: "); Serial.println(compassData);
 }
