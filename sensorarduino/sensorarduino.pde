@@ -40,9 +40,9 @@ Sensor program
 
 //Pins
 byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  6, 13, 6, 13, 6, 13};
+  13, 5, 13, 9, 11, 13};
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  7, 12, 7, 12, 7, 12};
+  12, 4, 12, 8, 10, 12};
 
 NewSoftSerial GpsPort(2,3);
 TinyGPS Gps;
