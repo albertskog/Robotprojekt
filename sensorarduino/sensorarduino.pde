@@ -44,7 +44,7 @@ byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
   12, 4, 12, 8, 10, 12};
 
-NewSoftSerial GpsPort(2,3);
+NewSoftSerial GpsPort(0,1);
 TinyGPS Gps;
 RunningMedian ProximityData[NUMBER_OF_PROXIMITY_SENSORS];
 byte sensorData[NUMBER_OF_PROXIMITY_SENSORS+4+4+1];
@@ -63,7 +63,7 @@ long t=0;
 void setup()
 {
   //debug only
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   //Setup I2C
   Wire.begin(I2C_ADDRESS);
@@ -215,12 +215,12 @@ void loop()
     convertPosition();
   }
 
-  if (millis() - t > 1000)
+ /* if (millis() - t > 1000)
   {
     printProximityData();
     printGpsData();
     t=millis();
-  }
+  }*/
 
 }
 
