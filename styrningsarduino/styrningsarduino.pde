@@ -31,11 +31,9 @@ void setup()
 	Wire.begin(wireAdress);
 	Wire.onReceive(receiveEvent); 
 	slaveAddress = HMC6352Address >> 1; // This results in 0x21
-
 	// Setup: Servo and ESC
 	Angle.attach(servoPin);
 	Angle.write(servoCenter);
-	
 	Speed.attach(motorPin);
 	Speed.write(noSpeed);
 	
