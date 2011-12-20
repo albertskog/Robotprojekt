@@ -1,4 +1,9 @@
-/*  The program revieves speed and direction from the main program 
+/*  	Name: styrningsardino.pde
+	Date: 2011-12-19
+	Made by: Stefan Sundin
+	Course: TNE040/TNK107
+	Description: 
+	The program recieves speed and direction from the main program 
 	and drives towards given direction at given speed. 
 	Returns speed and distance to main program 	*/
 #include <Servo.h>
