@@ -1,20 +1,21 @@
-//N1#D2;3#E4;5#S5
-// watchdog http://tushev.org/articles/electronics/48-arduino-and-watchdog-timer
-#include <Wire.h>
-#include <AverageList.h>
-#include <avr/wdt.h>
+/*		Name: Huvudprogram
+		Date: 2011-12-19
+		Made by: Karl Westerberg
+		Course: TNE040/TNK107
+		Descriotion:
+		The progrem is use as a main program and is made to communic whit ADM, sensor arduino
+		and give directions to the vehicle control arduino.   
+*/
+
+#include <Wire.h>			// Serial colunication
+#include <avr/wdt.h>		// Watchdog 
 
 #define PACKAGE_LENGTH 46
 #define INPACKAGE_LENGTH 16
 #define SENSORPACKAGE_LENGTH 14
 #define DIRECTIONDATA_LENGTH 3
 
-typedef int sample;
-const byte MAX_NUMBER_OF_READINGS = 5;
-sample storage[MAX_NUMBER_OF_READINGS] = {
-	0};
-AverageList<sample> distance = AverageList<sample>( storage, MAX_NUMBER_OF_READINGS );
-
+// Time and constans 
 long t = 0;
 long inPackageTimeout = 0;
 long directiveTimeout = 0;
@@ -28,10 +29,10 @@ byte redPin = 2;
 byte yellowPin = 3;
 byte greenPin = 4;
 
-// summer pin
+// Summer pin
 byte sum = 5;
 
-//out package
+// Out package
 char dataPackage[PACKAGE_LENGTH];
 byte packageNumber = 0;
 
@@ -40,17 +41,16 @@ byte inpackageNumber;
 byte wayPointLon[4];
 byte wayPointLat[4];
 byte velocity = 0;
-
 /*
- byte wayPointX2[4];
+ 
+ byte wayPointX2[4];   // next waypoint
  byte wayPointY2[4];
- byte velocity;
- */
+*/
 
-//in I2C
+// In I2C
 byte inSensorPackage[SENSORPACKAGE_LENGTH];
 
-// out I2C
+// Out I2C
 byte directiveData[DIRECTIONDATA_LENGTH];
 
 //US sensors
@@ -63,27 +63,33 @@ byte back = 255;
 
 byte voltage;
 
-// status: 3 = driving, still = 1
+// Status variables
 boolean reacheWP = false;
-byte stat = 1;
-byte sens = 0;
+byte stat = 1;		/*	status 1,2,3 och 4
+					1 = robot navigate to waypoint
+					2 = avoid Clas Ohlsson box
+					3 = arrived to waypoint
+					4 = Error */
+byte sens = 0;		//  Right or left sensor activated
 
-//GPS 
-byte lonByte[4]; // x-axis
-byte latByte[4]; // y-axis
-long lat, lon; // Robot possision 
+// GPS 
+byte lonByte[4];	// longitud vector
+byte latByte[4];	// latitud vector
+long lat, lon;		// Robot possision 
+long latWP = 0;		// Waypoint 
+long lonWP = 0;
+long latWPref = 0;	// Buffer for waypoint
+long lonWPref = 0;
+
 byte dataAge;
+
 
 // Compass
 byte compassData[2];
 int compassInValue;
 int i;
-long latWP = 0;
-long lonWP = 0;
-long latWPref = 0;
-long lonWPref = 0;
 
-// calculation of direction
+//	Calculation of direction
 int newCompassDirection;
 long deltaLAT;
 long deltaLON;
@@ -94,29 +100,29 @@ int fi_direction;
 
 void setup()
 {
-	pinMode(redPin, OUTPUT); // led pins for status!
-	pinMode(yellowPin, OUTPUT); // digitalWrite(ledPin, HIGH);
+	pinMode(redPin, OUTPUT);		// Led pins for status!
+	pinMode(yellowPin, OUTPUT); 
 	pinMode(greenPin, OUTPUT);
 	pinMode(sum, OUTPUT);
-	Serial.begin(115200); //Depends on the BT-module
+	Serial.begin(115200);			// Depends on the BT-module
 	Wire.begin();
 	prepareDataPackage();
-	digitalWrite(redPin, HIGH);
+	digitalWrite(redPin, HIGH);		// High = turn of leds 
 	digitalWrite(yellowPin, HIGH);
 	digitalWrite(greenPin, HIGH);
-	wdt_enable(WDTO_8S);
-	velocity = 0;
+	wdt_enable(WDTO_8S);			// Start whatchdog timer
+	velocity = 0;				
 }
-// get angel between Gps and waypint at start
+//		Get angel between Gps and waypint at start
 void directionGpsWayPoint()    
 {	
-	//check gps while running
+	//		Check compass while running
 	if (stat == 3 || stat == 2)
 	{
 		
 		getSensorPackage();
 		
-		// error stop!
+		//		Error stop!
 		if (lon == 0 && lat == 0)
 		{
 			velocity = 0;
@@ -125,7 +131,7 @@ void directionGpsWayPoint()
 			digitalWrite(yellowPin,LOW);
 		} 
 	}
-	///get proper gps position and calculate new desired compass heading
+	//		Get proper gps position and calculate new desired compass heading
 	if(stat == 1)
 	{
 		byte n = 5;
@@ -133,10 +139,10 @@ void directionGpsWayPoint()
 		deltaLON = 0;
 		for (byte i = 0; i<n; i++)
 		{
-			//get new gps data
+			//		Get new gps data
 			getSensorPackage();
 			
-			//parse gps data
+			//		Convert from byte to long 
 			lat = (
 				   (((long)inSensorPackage[6])<<24) |
 				   (((long)inSensorPackage[7])<<16) |
@@ -149,7 +155,7 @@ void directionGpsWayPoint()
 				   (((long)inSensorPackage[12])<<8) |
 				   ((long)inSensorPackage[13]));
 			
-			//add to mean 
+			//		Add to mean 
 			deltaLAT += lat-latWP;
 			deltaLON += lon-lonWP; 
 		}
@@ -160,35 +166,34 @@ void directionGpsWayPoint()
 		angle = atan2(abs(deltaLAT),abs(deltaLON));
 		fi_direction = angle*180/pi;
 		
-		// Calculate the new compass direction
-		if(deltaLON <= 0 && deltaLAT <= 0) // check if first qvadrant 
+		//		Calculate the new compass direction
+		if(deltaLON <= 0 && deltaLAT <= 0) // Check if first qvadrant 
 		{
 			newCompassDirection = 90 - fi_direction;
 		}
-		else if(deltaLON > 0 && deltaLAT < 0) // check second qvadrant
+		else if(deltaLON > 0 && deltaLAT < 0) // Check second qvadrant
 		{
 			newCompassDirection = 270 + fi_direction;
 		}
-		else if(deltaLON >= 0 && deltaLAT >= 0) // check third qvadrant
+		else if(deltaLON >= 0 && deltaLAT >= 0) // Check third qvadrant
 		{
 			newCompassDirection = 270 - fi_direction;
 		}  
-		else if(lon < lonWP && lat > latWP)//(deltaLON < 0 && deltaLAT > 0) // check fouth qvadrant
+		else if(lon < lonWP && lat > latWP) // Check fouth qvadrant
 		{
 			newCompassDirection = 90 + fi_direction;
 		}
 		
 		digitalWrite(greenPin,LOW);
-		stat = 3; // start drive!
+		stat = 3; //	Start drive!
 	}
 }
-// angel between GPS and waypoint while running
+//		Angel between GPS and waypoint while running
 void directionWhileRunning() 
 {
-	//get new gps data
+	//		get new GPSdata
 	getSensorPackage();
 	
-	//parse gps data
 	lat = (
 		   (((long)inSensorPackage[6])<<24) |
 		   (((long)inSensorPackage[7])<<16) |
@@ -208,20 +213,20 @@ void directionWhileRunning()
 	angle = atan2(deltaLAT,deltaLON);
 	fi_direction = angle*180/pi;
 	
-	// Calculate the new compass direction
-	if(lon <= lonWP && lat <= latWP) // check if first qvadrant 
+	//		Calculate the new compass direction
+	if(lon <= lonWP && lat <= latWP) // Check if first qvadrant 
 	{
 		newCompassDirection = fi_direction;
 	}
-	else if(lon > lonWP && lat < latWP) // check second qvadrant
+	else if(lon > lonWP && lat < latWP) // Check second qvadrant
 	{
 		newCompassDirection = 270 + fi_direction;
 	}
-	else if(lon >= lonWP && lat >= latWP) // check third qvadrant
+	else if(lon >= lonWP && lat >= latWP) // Check third qvadrant
 	{
 		newCompassDirection = 270 - fi_direction;
 	}  
-	else if(lon < lonWP && lat > latWP) // check fouth qvadrant
+	else if(lon < lonWP && lat > latWP) // Check fouth qvadrant
 	{
 		newCompassDirection = 90 + fi_direction;
 	}
@@ -229,25 +234,25 @@ void directionWhileRunning()
 	{
 	}
 }
-// sensorpackage from sensorarduino
+//		Sensorpackage from sensorarduino
 void getSensorPackage()  
 {
-	Wire.requestFrom(2, 14);    // request 9 bytes from adress 2
+	Wire.requestFrom(2, 14);    // Request 9 bytes from adress 2
 	i = 0;
 	
-	while(Wire.available())    // slave may send less than requested
+	while(Wire.available())    // Slave may send less than requested
 	{ 
 		inSensorPackage[i++] = Wire.receive();
 	}
 	
-	parseSensorPackage(); // parse sensor data 
-	if(stat != 1) // if not stationary
+	parseSensorPackage();   // Parse sensordata 
+	if(stat != 1)			// If not stationary
 	{
-		checkSensors();
+		checkSensors();	
 		checkDestination();
 	}
 } 
-// 
+//		Arrived to waypoint
 void checkDestination()
 {
 	if(abs(lat-latWP) <= 5 && abs(lon-lonWP) <= 5)
@@ -255,21 +260,21 @@ void checkDestination()
 		stat = 1;
 		reacheWP = true;
 		velocity = 0;
-		updateDirective();		// to 
+		updateDirective();		 
 		latWPref = latWP;		// ref in getInPackage
-		lonWPref = lonWP;		//
+		lonWPref = lonWP;		
 		
-		digitalWrite(redPin, LOW);
-		digitalWrite(sum, HIGH);
+		digitalWrite(redPin, LOW);	// Light up red diod
+		digitalWrite(sum, HIGH);	// start the summer
 		delay(2000);
 		digitalWrite(sum,LOW);
-		Serial.flush();
+		Serial.flush();				// Clear BT buffer
 	}
 }
-// Build package from sensorarduino to ADM
+//		Build package from sensorarduino to ADM
 void parseSensorPackage()	
 {
-	right = inSensorPackage[0];		// US sensors! 
+	right = inSensorPackage[0];			// US sensors! 
 	frontRight = inSensorPackage[1];
 	front = inSensorPackage[2];
 	frontLeft = inSensorPackage[3];
@@ -289,7 +294,7 @@ void parseSensorPackage()
 	
 	dataAge = inSensorPackage[14];			// GPS age
 }
-// sensor value to smal (Work whit)
+//		Check sensors if Clas Ohlsson is to close 
 void checkSensors() 
 {
 	if(front < 100)
@@ -321,7 +326,7 @@ void checkSensors()
 	}
 	
 }
-// Build package to controlarduino and sends it 
+//		Build and save package to vehicle control arduino 
 void updateDirective() 
 {
 	directiveData[0] = (newCompassDirection >> 8);
@@ -332,27 +337,29 @@ void updateDirective()
 	Wire.send(directiveData, 3);         // sends five bytes 
 	Wire.endTransmission();              // stop transmitting
 }
-// get compass data from I2C
+//		Get compass data from I2C
 void getCompassData()
 {
 	Wire.beginTransmission(0x21);
-	Wire.send("A");              // The "Get Data" command
+	Wire.send("A");						// The "Get Data" command
 	Wire.endTransmission();
-	delay(10);                   // The HMC6352 needs at least a 70us (microsecond) delay
+	delay(10);							// The HMC6352 needs at least a 70us (microsecond) delay
 	
-	Wire.requestFrom(0x21, 2);        // Request the 2 byte heading (MSB comes first)
+	Wire.requestFrom(0x21, 2);			// Request 2 bytes
 	i = 0;
 	while(Wire.available() && i < 2)
 	{ 
 		compassData[i] = Wire.receive();
 		i++;
 	}	
-	compassInValue = (compassData[0]*256 + compassData[1])/10;  // Put the MSB and LSB together
+	// Byte to int
+	compassInValue = (compassData[0]*256 + compassData[1])/10; 
 }
-// Package from BT, includes parseInPackage
+//		Package from BT, includes parseInPackage
 void getInPackage()
 {
-	while(reacheWP) // wait for new waypoint! 
+	// Wait for new waypoint at reached waypoint
+	while(reacheWP) 
 	{
 		digitalWrite(sum, HIGH);
 		delay(100);
@@ -364,8 +371,8 @@ void getInPackage()
 			inPackage[i++] = Serial.read();
 		}
 		
-		
-		if((inPackage[0] == 'N') && (inPackage[3] == 'D') && (inPackage[14] == 'S')) // cheking array
+		// Cheking array if correct
+		if((inPackage[0] == 'N') && (inPackage[3] == 'D') && (inPackage[14] == 'S')) 
 		{
 			digitalWrite(yellowPin,LOW);
 			parseInPackage(inPackage); 
@@ -381,26 +388,24 @@ void getInPackage()
 					 (((long)wayPointLon[1])<<16) |
 					 (((long)wayPointLon[2])<<8) |
 					 ((long)wayPointLon[3]));
-			
+			// if change waypoint 
 			if(latWPref != latWP || lonWPref != lonWP)
 			{
-				digitalWrite(sum,HIGH);
-				reacheWP = false;
+				reacheWP = false;	// end the loop
 				latWP = 0;
 				lonWP = 0;
-				delay(1000);
-				digitalWrite(sum,LOW);
 				Serial.flush();
 			}
-			
+			// in correct package
 			if((inPackage[0] != 'N') || (inPackage[3] != 'D') || (inPackage[14] != 'S')) 
 			{
 				digitalWrite(greenPin, LOW);
 				Serial.flush();
 			}
 		}
-		wdt_reset();
+		wdt_reset(); // resets whatchdog
 	}
+	// Calculate a new direction after avoid box
 	if (stat == 2)
 	{
 		Serial.flush();
@@ -408,6 +413,7 @@ void getInPackage()
 		latWP = 0;
 		lonWP = 0;
 	}
+	
 	i = 0;
 	char inPackage[INPACKAGE_LENGTH-1];
 	
@@ -435,7 +441,7 @@ void getInPackage()
 				 (((long)wayPointLon[2])<<8) |
 				 ((long)wayPointLon[3]));
 		
-		//Check for emergency stop
+		//	Check for emergency stop
 		if (latWP == 0 || lonWP == 0) 
 		{
 			stat = 4;
@@ -447,9 +453,6 @@ void getInPackage()
 			stat = 1; // still to calc direction 
 			velocity = 0;
 			updateDirective();
-			/*	digitalWrite(sum,HIGH); // ?
-			 delay(200);
-			 digitalWrite(sum,LOW);*/
 		}
 		if(reacheWP == false)
 		{
@@ -460,7 +463,7 @@ void getInPackage()
 	} 
 	
 }
-// Waypoint byte
+//		Waypoint byte
 void parseInPackage(char inPackage[])	
 { 
 	inpackageNumber = inPackage[1];
@@ -484,7 +487,7 @@ void parseInPackage(char inPackage[])
 	 velocity = inPackage[14];   
 	 */
 }
-// basis for the Data package BT (one time only). +6 på allt
+//		Basis for the Data package bluetooth (setup).
 void prepareDataPackage()  
 {
 	dataPackage[0] = 'N';
@@ -513,7 +516,7 @@ void prepareDataPackage()
 	dataPackage[44] = '#';
 	dataPackage[45] = 10;
 }
-// Build data package BT.
+//		Build data package bluetooth.
 void buildDataPackage() 
 {
 	dataPackage[1] = packageNumber++;
@@ -542,7 +545,7 @@ void buildDataPackage()
 	dataPackage[40] = stat; // Status
 	dataPackage[43] = inpackageNumber;  
 }
-// at BT.
+//		Send at bluetooth.
 void sendDataPackage() 
 {
 	if (millis() - t > 500)
@@ -555,17 +558,17 @@ void sendDataPackage()
 		t = millis();
 	}
 }
-// turn if frontsensor is activated
+//		Turn if frontsensor is activated
 void turn()
 {
 	velocity = reverse;	// brake
-	updateDirective();// to sensorarduino
+	updateDirective();	// to vehicle control arduino
 	delay(200);
 	velocity = 0;
 	updateDirective();
 	
 	delay(300);
-	velocity = reverse;
+	velocity = reverse;	 // reverse
 	updateDirective();
 	velocity = 0;
 	delay(1500);
@@ -593,9 +596,10 @@ void turn()
 	updateDirective();
 	stat = 2;
 }
-// turn if right sensors are activated 
+//		Turn if left sensors are activated 
 void leftTurn()
 {
+	// if front, left- & rightsensor
 	if(sens == 1)
 	{
 		velocity = reverse;	// brake
@@ -611,7 +615,8 @@ void leftTurn()
 		delay(1500);
 		updateDirective();
 		
-		newCompassDirection = (compassInValue + 270)%360;
+		// turn 90 degrees
+		newCompassDirection = (compassInValue + 270)%360;	
 		velocity = speed;
 		delay(1500);
 		updateDirective();
@@ -621,15 +626,17 @@ void leftTurn()
 		stat = 2;
 		sens = 0;
 	}
+	// if side sensors  
 	else if(sens == 2)
 	{
-		newCompassDirection = (compassInValue + 350)%360;
+		// turn 10 degrees
+		newCompassDirection = (compassInValue + 350)%360;	
 		updateDirective();
 		stat = 2;
 		sens = 0;
 	}
 }
-// turn if left sensors are activated
+//		Turn if right sensors are activated
 void rightTurn()
 { 
 	if(sens == 1)
@@ -647,6 +654,7 @@ void rightTurn()
 		delay(1500);
 		updateDirective();
 		
+		// turn 90 degrees
 		newCompassDirection = (compassInValue + 90)%360;
 		velocity = speed;	
 		delay(1500);
@@ -659,6 +667,7 @@ void rightTurn()
 	}
 	else if(sens == 2)
 	{
+		// turn 10 degrees
 		newCompassDirection = (compassInValue + 10)%360;
 		updateDirective();
 		stat = 2;
@@ -668,35 +677,38 @@ void rightTurn()
 
 void loop()
 {
-	//Check for bluetooth timeout
-	/*	if (millis() - inPackageTimeout > 5000)
-	 {
-	 velocity = 0;
-	 stat = 4;		//Error status!
-	 updateDirective();
-	 } */
+	// Check for bluetooth timeout
+	if (millis() - inPackageTimeout > 5000)
+	{
+		velocity = 0;
+		stat = 4;			// Error status!
+		updateDirective();
+	}
 	if (Serial.available())
 	{
 		getInPackage();
 	}
+	// Get sensordata and check sensors and dectinations
+	getSensorPackage(); 
 	
-	getSensorPackage();
-	
-	if (stat == 3 && (millis()-directiveTimeout > 5000)) // if running
+	// While running
+	if (stat == 3 && (millis()-directiveTimeout > 5000)) 
 	{
-		updateDirective();  // skicka via I2C till styrarduino
+		updateDirective();				// Send I2C to 
 		directiveTimeout = millis();
 	}
-	if (angleUpdate > 10) // update direction during run
+	// Update direction during run
+	if (angleUpdate > 10) 
 	{
 		directionWhileRunning();	
 		angleUpdate = 0;
 	}
+	// Build and send package
 	getCompassData();
 	buildDataPackage();
-	
 	sendDataPackage();
-	inPackageTimeout = millis(); // test!
+	
+	inPackageTimeout = millis();
 	angleUpdate++;
-	wdt_reset();
+	wdt_reset();	// reset watchdog
 }
