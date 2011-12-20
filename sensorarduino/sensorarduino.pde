@@ -8,62 +8,47 @@ Sensor program
 #include <Wire.h>
 #include <RunningMedian.h>
 
-//define corners
-#define LON_1 16.16270216
-#define LAT_1 58.58865287
-
-#define LON_2 16.16300559
-#define LAT_2 58.58867050
-
-#define LON_3 16.16296569
-#define LAT_3 58.58907323
-
-#define LON_4 16.16266411
-#define LAT_4 58.58906116
-
-#define LON_5 16.16267061
-#define LAT_5 58.58892476
-
-//define A & B
-#define LON_A 16.16276325
-#define LAT_A 58.58903116
-
-#define LON_B 16.16294636
-#define LAT_B 58.58869834
-
 //Variables
 #define I2C_ADDRESS 2
 #define GPS_BAUDRATE 57600
-#define NUMBER_OF_PROXIMITY_SENSORS 6
+
+#define NUMBER_OF_PROXIMITY_SENSORS 5
+#define PROXIMITY_TIMEOUT 15000
 #define PROXIMITY_CONSTANT 58    //Used to convert time into cm..
 
+#define BATTERY_PIN 0
+#define BATTERY_OFFSET 27
 
 //Pins
 byte proximitySensorTrigPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  6, 13, 6, 13, 6, 13};
+  3, 5, 7, 9, 11};
 byte proximitySensorEchoPin[NUMBER_OF_PROXIMITY_SENSORS] = {
-  7, 12, 7, 12, 7, 12};
+  2, 4, 6, 8, 10};
 
-NewSoftSerial GpsPort(2,3);
+//GPS port object
+NewSoftSerial GpsPort(0,1);
+
+//GPS object
 TinyGPS Gps;
+
+//List of proximity data medians
 RunningMedian ProximityData[NUMBER_OF_PROXIMITY_SENSORS];
-byte sensorData[NUMBER_OF_PROXIMITY_SENSORS+4+4+1];
 
-long lat, lon, lat_0, lon_0;
+//Array containing the latest sensor data
+byte sensorData[NUMBER_OF_PROXIMITY_SENSORS+4+4+1+1];
+
+//GPS varaibles
+long lat, lon;
 unsigned long age;
-int i = 0;
+byte ageByte;
 
-byte xByte, yByte, ageByte;
 
-byte p[6] = {
-  1, 2, 3, 4, 5, 6};
-
-long t=0;
+//long t=0;
 
 void setup()
 {
   //debug only
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   //Setup I2C
   Wire.begin(I2C_ADDRESS);
@@ -83,10 +68,10 @@ void setup()
 }
 
 //send back the proximity and gps data upon request
-//we always send a total of NUMBER_OF_PROXIMITY_SENSORS + 3 bytes (=6+3=9)
+//we always send a total of NUMBER_OF_PROXIMITY_SENSORS + 9 bytes (=1+4+4=9)
 void i2cEventHandler()
 { 
-  Wire.send(sensorData, NUMBER_OF_PROXIMITY_SENSORS+4+4+1);
+  Wire.send(sensorData, NUMBER_OF_PROXIMITY_SENSORS+1+4+4);
   //Serial.println("I2C request");
 }
 
@@ -107,7 +92,7 @@ byte getProximity(byte sensor)
   //Waiting for the pulse from the sensor is time critical, disable interrupts!
   //noInterrupts();
   pulse(proximitySensorTrigPin[sensor]);
-  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH)/PROXIMITY_CONSTANT;
+  proximity = pulseIn(proximitySensorEchoPin[sensor], HIGH, PROXIMITY_TIMEOUT)/PROXIMITY_CONSTANT;
   //Serial.println(proximity);
   //interrupts();
 
@@ -131,18 +116,9 @@ byte getProximity(byte sensor)
 //add the values to the proximityData objects
 void updateProximityData()
 {
-  byte newProximityData[NUMBER_OF_PROXIMITY_SENSORS];
-
   for(byte i = 0; i < NUMBER_OF_PROXIMITY_SENSORS; i++)
   {
-    newProximityData[i]= getProximity(i);
-  }
-
-  //We dont want to mix new and old values, disable I2C interrupts for this
-  noInterrupts();
-  for(byte i = 0; i < NUMBER_OF_PROXIMITY_SENSORS; i++)
-  {
-    ProximityData[i].add(newProximityData[i]);
+    ProximityData[i].add(getProximity(i));
     sensorData[i] = ProximityData[i].getMedian();
   }
   interrupts();
@@ -165,15 +141,15 @@ void printProximityData()
 void convertPosition()
 {
   noInterrupts();
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 0] = (byte) (lat >> 24);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 1] = (byte) (lat >> 16);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 2] = (byte) (lat >> 8);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 3] = (byte) lat;
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 4] = (byte) (lon >> 24);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 5] = (byte) (lon >> 16);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 6] = (byte) (lon >> 8);
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 7] = (byte) lon;
-  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 8] = (byte) age;
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 1] = (byte) (lat >> 24);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 2] = (byte) (lat >> 16);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 3] = (byte) (lat >> 8);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 4] = (byte) lat;
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 5] = (byte) (lon >> 24);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 6] = (byte) (lon >> 16);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 7] = (byte) (lon >> 8);
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 8] = (byte) lon;
+  sensorData[NUMBER_OF_PROXIMITY_SENSORS + 9] = (byte) age;
   if(age < 255)
   {
     ageByte = age;
@@ -206,21 +182,27 @@ bool feedGps()
   return false;
 }
 
+void updateVoltage()
+{
+    sensorData[NUMBER_OF_PROXIMITY_SENSORS] = analogRead(BATTERY_PIN) - BATTERY_OFFSET;
+}
+
 void loop()
 {
-  updateProximityData();
   if (feedGps())
   {
     Gps.get_position(&lat, &lon, &age);
     convertPosition();
   }
+  updateProximityData();
+  updateVoltage();
 
-  if (millis() - t > 1000)
+ /* if (millis() - t > 1000)
   {
     printProximityData();
     printGpsData();
     t=millis();
-  }
+  }*/
 
 }
 
